@@ -1021,7 +1021,7 @@ const App: React.FC = () => {
                   });
                   setProgressMessage(`씬 ${idx + 1} 영상 변환 완료!`);
                 } else {
-                  setProgressMessage(`씬 ${idx + 1} 영상 변환 실패`);
+                  setProgressMessage(`씬 ${idx + 1} 영상 변환 실패!`);
                 }
               } catch (e: any) {
                 console.error('영상 변환 실패:', e);
