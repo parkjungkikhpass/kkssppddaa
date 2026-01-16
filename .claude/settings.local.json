@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(npm run dev)",
+      "Bash(npm run build:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:elevenlabs.io)",
+      "Bash(find:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}
