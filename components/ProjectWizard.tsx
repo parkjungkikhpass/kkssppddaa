@@ -795,14 +795,14 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
   const currentCategory = CATEGORY_LIST.find(c => c.id === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0a0a0f]">
       {/* 헤더 */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b-2 border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={currentStep === 1 ? onBack : prevStep}
-              className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -810,7 +810,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
               <span className="font-medium">{currentStep === 1 ? '대시보드로' : '이전 단계'}</span>
             </button>
             <div className="text-center">
-              <h1 className="text-lg font-bold text-gray-900">새 프로젝트</h1>
+              <h1 className="text-lg font-bold text-white">새 프로젝트</h1>
             </div>
             <div className="w-24"></div>
           </div>
@@ -829,10 +829,10 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                   disabled={s.id > currentStep}
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
                     s.id === currentStep
-                      ? 'bg-brand-500 text-white ring-4 ring-brand-500/30'
+                      ? 'bg-[#f06050] text-white ring-4 ring-[#f06050]/30'
                       : s.id < currentStep
                       ? 'bg-emerald-500 text-white cursor-pointer hover:bg-emerald-400'
-                      : 'bg-gray-200 text-gray-400'
+                      : 'bg-[#1a1a24] text-gray-500 border border-gray-800/50'
                   }`}
                 >
                   {s.id < currentStep ? (
@@ -844,7 +844,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                   )}
                 </button>
                 <span className={`text-xs font-bold mt-2 ${
-                  s.id === currentStep ? 'text-gray-900' : 'text-gray-400'
+                  s.id === currentStep ? 'text-white' : 'text-gray-500'
                 }`}>
                   {s.name}
                 </span>
@@ -853,7 +853,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
               {/* 연결선 */}
               {idx < WIZARD_STEPS.length - 1 && (
                 <div className={`w-20 h-0.5 mx-2 mb-6 transition-colors ${
-                  s.id < currentStep ? 'bg-emerald-500' : 'bg-gray-200'
+                  s.id < currentStep ? 'bg-emerald-500' : 'bg-gray-800'
                 }`} />
               )}
             </React.Fragment>
@@ -863,48 +863,48 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
 
       {/* 메인 콘텐츠 */}
       <main className="max-w-4xl mx-auto px-6 py-8">
-        <div className="bg-white border-2 border-gray-200 rounded-3xl p-8 shadow-md">
+        <div className="bg-[#1a1a24] border border-gray-800/50 rounded-3xl p-8">
           {/* Step 1: 영상 설정 */}
           {currentStep === 1 && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">영상 설정</h2>
-                <p className="text-gray-500">스타일과 비율을 선택하고 시작하세요.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">영상 설정</h2>
+                <p className="text-gray-400">스타일과 비율을 선택하고 시작하세요.</p>
               </div>
 
               {/* 영상 비율 선택 */}
               <div className="mb-10">
-                <h3 className="text-sm font-bold text-gray-600 mb-4 text-center">영상 비율 선택</h3>
+                <h3 className="text-sm font-bold text-gray-400 mb-4 text-center">영상 비율 선택</h3>
                 <div className="flex justify-center gap-4">
                   {ASPECT_RATIO_LIST.map((ratio) => (
                     <button
                       key={ratio.id}
                       onClick={() => setAspectRatio(ratio.id)}
-                      className={`relative w-28 p-4 rounded-2xl border-2 transition-all shadow-sm ${
+                      className={`relative w-28 p-4 rounded-2xl border transition-all ${
                         aspectRatio === ratio.id
-                          ? 'border-brand-500 bg-brand-50 shadow-md'
-                          : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                          ? 'border-[#f06050] bg-[#f06050]/10'
+                          : 'border-gray-700 bg-[#12121a] hover:border-gray-600'
                       }`}
                     >
                       {aspectRatio === ratio.id && (
-                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-[#f06050] rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
                       )}
                       <div className={`flex justify-center mb-2 ${
-                        aspectRatio === ratio.id ? 'text-brand-500' : 'text-gray-400'
+                        aspectRatio === ratio.id ? 'text-[#f06050]' : 'text-gray-500'
                       }`}>
                         {ratio.icon}
                       </div>
                       <div className="text-center">
                         <div className={`text-lg font-bold ${
-                          aspectRatio === ratio.id ? 'text-gray-900' : 'text-gray-600'
+                          aspectRatio === ratio.id ? 'text-white' : 'text-gray-400'
                         }`}>
                           {ratio.name}
                         </div>
-                        <div className="text-[10px] text-gray-400">{ratio.description}</div>
+                        <div className="text-[10px] text-gray-500">{ratio.description}</div>
                       </div>
                     </button>
                   ))}
@@ -913,10 +913,10 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
 
               {/* 캐릭터 선택 */}
               <div className="mb-10">
-                <h3 className="text-sm font-bold text-gray-600 mb-2 text-center">
+                <h3 className="text-sm font-bold text-gray-400 mb-2 text-center">
                   캐릭터 설정
                 </h3>
-                <p className="text-xs text-gray-400 text-center mb-4">
+                <p className="text-xs text-gray-500 text-center mb-4">
                   대본에 따라 자동 생성하거나, 졸라맨 캐릭터를 사용할 수 있어요
                 </p>
                 <div className="flex justify-center gap-4">
@@ -924,24 +924,24 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                     <button
                       key={char.id}
                       onClick={() => setSelectedCharacter(char.id as CharacterType)}
-                      className={`relative px-6 py-4 rounded-2xl border-2 transition-all ${
+                      className={`relative px-6 py-4 rounded-2xl border transition-all ${
                         selectedCharacter === char.id
-                          ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500/30'
-                          : 'border-gray-300 bg-white hover:border-gray-400'
+                          ? 'border-[#f06050] bg-[#f06050]/10 ring-2 ring-[#f06050]/30'
+                          : 'border-gray-700 bg-[#12121a] hover:border-gray-600'
                       }`}
                     >
                       {selectedCharacter === char.id && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#f06050] rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
                       )}
                       <div className="text-2xl mb-1">{char.emoji}</div>
-                      <div className={`text-sm font-bold ${selectedCharacter === char.id ? 'text-gray-900' : 'text-gray-600'}`}>
+                      <div className={`text-sm font-bold ${selectedCharacter === char.id ? 'text-white' : 'text-gray-400'}`}>
                         {char.name}
                       </div>
-                      <div className="text-[10px] text-gray-400">{char.description}</div>
+                      <div className="text-[10px] text-gray-500">{char.description}</div>
                     </button>
                   ))}
                 </div>
@@ -949,11 +949,11 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
 
               {/* 스타일 선택 */}
               <div>
-                <h3 className="text-sm font-bold text-gray-600 mb-2 text-center">
-                  스타일 선택 <span className="text-red-500">*</span>
+                <h3 className="text-sm font-bold text-gray-400 mb-2 text-center">
+                  스타일 선택 <span className="text-red-400">*</span>
                 </h3>
                 {selectedStyle === '' && customStylePrompt.trim() === '' && referenceImages.length === 0 && !characterRefImage && !styleRefImage && (
-                  <p className="text-xs text-amber-600 text-center mb-4">
+                  <p className="text-xs text-amber-400 text-center mb-4">
                     ⚠️ 스타일을 선택하거나, 아래에서 커스텀 프롬프트/레퍼런스 이미지를 입력해주세요
                   </p>
                 )}
@@ -962,14 +962,14 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                     <button
                       key={style.id}
                       onClick={() => setSelectedStyle(style.id)}
-                      className={`relative group overflow-hidden rounded-2xl border-2 transition-all shadow-sm ${
+                      className={`relative group overflow-hidden rounded-2xl border transition-all ${
                         selectedStyle === style.id
-                          ? 'border-brand-500 ring-2 ring-brand-500/30 shadow-md'
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-[#f06050] ring-2 ring-[#f06050]/30'
+                          : 'border-gray-700 hover:border-gray-600'
                       }`}
                     >
                       {selectedStyle === style.id && (
-                        <div className="absolute top-2 right-2 z-10 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center">
+                        <div className="absolute top-2 right-2 z-10 w-5 h-5 bg-[#f06050] rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
@@ -981,14 +981,14 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                       </div>
                       {/* 텍스트 */}
                       <div className={`p-3 ${
-                        selectedStyle === style.id ? 'bg-gray-50' : 'bg-white'
+                        selectedStyle === style.id ? 'bg-[#12121a]' : 'bg-[#12121a]'
                       }`}>
                         <div className={`text-sm font-bold ${
-                          selectedStyle === style.id ? 'text-gray-900' : 'text-gray-600'
+                          selectedStyle === style.id ? 'text-white' : 'text-gray-400'
                         }`}>
                           {style.name}
                         </div>
-                        <div className="text-[10px] text-gray-400">{style.description}</div>
+                        <div className="text-[10px] text-gray-500">{style.description}</div>
                       </div>
                     </button>
                   ))}

@@ -337,7 +337,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
   return (
     <div className="w-full max-w-4xl mx-auto my-8 px-4">
       <div className="text-center mb-10">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2 text-gray-900">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2 text-white">
           TubeGen <span className="text-brand-500">Studio</span>
         </h1>
         <p className="text-gray-400 text-sm font-medium uppercase tracking-widest">졸라맨 V10.0 Concept-Based Engine</p>
@@ -355,7 +355,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value as CategoryType)}
-                className="w-full appearance-none bg-white text-gray-900 border-2 border-gray-300 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
+                className="w-full appearance-none bg-[#12121a] text-white border border-gray-700 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
               >
                 {CATEGORY_LIST.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -383,7 +383,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
               <select
                 value={selectedStyle}
                 onChange={(e) => setSelectedStyle(e.target.value as StyleType)}
-                className="w-full appearance-none bg-white text-gray-900 border-2 border-gray-300 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
+                className="w-full appearance-none bg-[#12121a] text-white border border-gray-700 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
               >
                 {STYLE_LIST.map((style) => (
                   <option key={style.id} value={style.id}>
@@ -410,7 +410,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
             <button
               type="button"
               onClick={() => setShowVideoModelDropdown(!showVideoModelDropdown)}
-              className="w-full bg-white border-2 border-gray-300 rounded-2xl px-4 py-3 cursor-pointer hover:border-gray-400 focus:border-cyan-500 outline-none transition-all flex items-center justify-between gap-2"
+              className="w-full bg-[#12121a] border-2 border-gray-300 rounded-2xl px-4 py-3 cursor-pointer hover:border-gray-600 focus:border-cyan-500 outline-none transition-all flex items-center justify-between gap-2"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -418,7 +418,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                 >
                   {VIDEO_MODEL_LIST.find(m => m.id === falVideoModel)?.shortName}
                 </span>
-                <span className="text-gray-900 text-sm font-bold truncate">
+                <span className="text-white text-sm font-bold truncate">
                   {VIDEO_MODEL_LIST.find(m => m.id === falVideoModel)?.name}
                 </span>
               </div>
@@ -429,7 +429,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
 
             {/* 드롭다운 목록 */}
             {showVideoModelDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-2xl overflow-hidden shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a24] border border-gray-800/50 rounded-2xl overflow-hidden shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                 {VIDEO_MODEL_LIST.map((model) => (
                   <button
                     key={model.id}
@@ -438,7 +438,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                       setFalVideoModel(model.id as VideoModelType);
                       setShowVideoModelDropdown(false);
                     }}
-                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${falVideoModel === model.id ? 'bg-gray-100' : ''}`}
+                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-[#1a1a24] transition-colors ${falVideoModel === model.id ? 'bg-[#12121a]' : ''}`}
                   >
                     <span
                       className={`px-2 py-0.5 rounded-md text-[10px] font-black ${model.bgColor} ${model.textColor}`}
@@ -446,7 +446,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                       {model.shortName}
                     </span>
                     <div className="flex-1 text-left">
-                      <div className="text-gray-900 text-sm font-bold">{model.name}</div>
+                      <div className="text-white text-sm font-bold">{model.name}</div>
                       <div className="text-gray-400 text-[10px]">{model.description}</div>
                     </div>
                     <div className="text-right">
@@ -472,7 +472,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
               <select
                 value={zoomEffect}
                 onChange={(e) => setZoomEffect(e.target.value as ZoomEffectType)}
-                className="w-full appearance-none bg-white text-gray-900 border-2 border-gray-300 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
+                className="w-full appearance-none bg-[#12121a] text-white border border-gray-700 rounded-2xl px-4 py-3.5 text-sm font-bold cursor-pointer hover:border-gray-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all"
               >
                 {ZOOM_EFFECT_LIST.map((zoom) => (
                   <option key={zoom.id} value={zoom.id}>
@@ -495,11 +495,11 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
 
       <div className="mb-4 flex flex-col gap-4">
         {/* TTS 엔진 선택 섹션 */}
-        <div className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-md">
+        <div className="bg-[#1a1a24] border border-gray-800/50 rounded-3xl overflow-hidden shadow-md">
           <div className="px-6 py-5">
             {/* TTS 엔진 선택 탭 */}
             <div className="flex items-center justify-center gap-2 mb-5">
-              <div className="bg-gray-100 p-1 rounded-xl flex gap-1 border-2 border-gray-200">
+              <div className="bg-[#12121a] p-1 rounded-xl flex gap-1 border-2 border-gray-800/50">
                 <button
                   type="button"
                   onClick={() => setTtsEngine('gemini')}
@@ -549,7 +549,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                     <select
                       value={geminiVoice}
                       onChange={(e) => setGeminiVoice(e.target.value as GeminiVoiceType)}
-                      className="w-full appearance-none bg-white text-gray-900 border-2 border-gray-300 rounded-xl px-4 py-3.5 text-sm cursor-pointer hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                      className="w-full appearance-none bg-[#12121a] text-white border border-gray-700 rounded-xl px-4 py-3.5 text-sm cursor-pointer hover:border-blue-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
                     >
                       <optgroup label="👩 여성 음성">
                         {GEMINI_VOICE_LIST.filter(v => v.gender === '여성').map((voice) => (
@@ -602,7 +602,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                         <select
                           value={elSelectedVoiceId}
                           onChange={(e) => setElSelectedVoiceId(e.target.value)}
-                          className="w-full appearance-none bg-white text-gray-900 border-2 border-gray-300 rounded-xl px-4 py-3.5 text-sm cursor-pointer hover:border-fuchsia-500 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/20 outline-none transition-all"
+                          className="w-full appearance-none bg-[#12121a] text-white border border-gray-700 rounded-xl px-4 py-3.5 text-sm cursor-pointer hover:border-fuchsia-500 focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500/20 outline-none transition-all"
                         >
                           {/* 내가 만든 음성 (최상단) */}
                           {userCustomVoices.length > 0 && (
@@ -648,7 +648,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
                         </div>
                       </>
                     ) : (
-                      <div className="flex items-center gap-2 px-4 py-3.5 bg-gray-50 rounded-xl border-2 border-gray-300">
+                      <div className="flex items-center gap-2 px-4 py-3.5 bg-[#1a1a24] rounded-xl border-2 border-gray-300">
                         {isLoadingVoices ? (
                           <>
                             <div className="w-4 h-4 border-2 border-fuchsia-400 border-t-transparent animate-spin rounded-full"></div>
@@ -700,14 +700,14 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
         </div>
 
         {/* FAL.ai Animation Settings */}
-        <div className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-md">
-          <button type="button" onClick={() => setShowFalSettings(!showFalSettings)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+        <div className="bg-[#1a1a24] border border-gray-800/50 rounded-3xl overflow-hidden shadow-md">
+          <button type="button" onClick={() => setShowFalSettings(!showFalSettings)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-[#1a1a24] transition-colors">
             <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${falApiKey ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${falApiKey ? 'bg-cyan-100 text-cyan-600' : 'bg-[#12121a] text-gray-400'}`}>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
               <div className="text-left">
-                <span className="block text-sm font-bold text-gray-900">FAL.ai 애니메이션 엔진</span>
+                <span className="block text-sm font-bold text-white">FAL.ai 애니메이션 엔진</span>
                 <span className="text-[10px] text-gray-500 uppercase tracking-widest font-black">
                   {falApiKey ? `✅ 앞 ${CONFIG.ANIMATION.ENABLED_SCENES}개 씬 영상화 활성` : '⏸️ 선택사항 - 정적 이미지만 사용'}
                 </span>
@@ -720,13 +720,13 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
           </button>
 
           {showFalSettings && (
-            <div className="p-8 border-t-2 border-gray-100 bg-gray-50 space-y-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="p-8 border-t-2 border-gray-100 bg-[#1a1a24] space-y-4 animate-in slide-in-from-top-2 duration-200">
               <div className="space-y-2">
                 <label className="text-[11px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
                   FAL API Key
                   <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer" className="text-cyan-600 hover:text-cyan-500 transition-colors">(키 발급)</a>
                 </label>
-                <input type="password" value={falApiKey} onChange={(e) => setFalApiKey(e.target.value)} placeholder="fal_..." className="w-full bg-white border-2 border-gray-300 rounded-2xl px-5 py-3.5 text-sm text-gray-900 focus:border-cyan-500 outline-none transition-all placeholder:text-gray-400 shadow-sm" />
+                <input type="password" value={falApiKey} onChange={(e) => setFalApiKey(e.target.value)} placeholder="fal_..." className="w-full bg-[#12121a] border-2 border-gray-300 rounded-2xl px-5 py-3.5 text-sm text-white focus:border-cyan-500 outline-none transition-all placeholder:text-gray-400 shadow-sm" />
               </div>
               <p className="text-[10px] text-gray-500">
                 💡 비디오 모델은 상단 드롭다운에서 선택할 수 있습니다.
@@ -736,10 +736,10 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
         </div>
 
         {/* Global Reference Images */}
-        <div className="p-6 bg-white border-2 border-gray-200 rounded-3xl shadow-md">
+        <div className="p-6 bg-[#1a1a24] border border-gray-800/50 rounded-3xl shadow-md">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <div className="flex-1 text-left">
-              <h3 className="text-gray-900 font-bold text-lg mb-1">스타일 참조 이미지</h3>
+              <h3 className="text-white font-bold text-lg mb-1">스타일 참조 이미지</h3>
               <p className="text-gray-500 text-xs">
                 참조 이미지를 올리면 화풍과 색감을 자동으로 분석해 적용합니다.
                 {referenceImages.length > 0 && (
@@ -750,7 +750,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
             <div className="flex flex-wrap gap-3 items-center">
               {referenceImages.map((img, idx) => (
                 <div key={idx} className="relative group">
-                  <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-gray-200">
+                  <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-gray-800/50">
                     <img src={img} alt={`Ref ${idx}`} className="w-full h-full object-cover" />
                   </div>
                   <button onClick={() => removeImage(idx)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -767,7 +767,7 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
 
       {/* Tabs and Submit */}
       <div className="flex justify-center mb-6">
-        <div className="bg-gray-100 p-1.5 rounded-2xl border-2 border-gray-200 flex gap-1">
+        <div className="bg-[#12121a] p-1.5 rounded-2xl border-2 border-gray-800/50 flex gap-1">
           <button type="button" onClick={() => setActiveTab('auto')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'auto' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>자동 트렌드</button>
           <button type="button" onClick={() => setActiveTab('manual')} className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'manual' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}>수동 대본</button>
         </div>
@@ -777,15 +777,15 @@ const InputSection: React.FC<InputSectionProps> = ({ onGenerate, step }) => {
         {activeTab === 'auto' ? (
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-brand-600 to-blue-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-            <div className="relative flex items-center bg-white rounded-2xl border-2 border-gray-300 overflow-hidden pr-2 shadow-md">
-              <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} disabled={isProcessing} placeholder={`${currentCategory?.name || '경제'} 트렌드 키워드 입력...`} className="block w-full bg-transparent text-gray-900 py-5 px-6 focus:ring-0 focus:outline-none placeholder-gray-400 text-lg disabled:opacity-50" />
+            <div className="relative flex items-center bg-[#12121a] rounded-2xl border-2 border-gray-300 overflow-hidden pr-2 shadow-md">
+              <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} disabled={isProcessing} placeholder={`${currentCategory?.name || '경제'} 트렌드 키워드 입력...`} className="block w-full bg-transparent text-white py-5 px-6 focus:ring-0 focus:outline-none placeholder-gray-400 text-lg disabled:opacity-50" />
               <button type="submit" disabled={isProcessing || !topic.trim()} className="bg-brand-600 hover:bg-brand-500 text-white font-black py-3 px-8 rounded-xl transition-all disabled:opacity-50 whitespace-nowrap shadow-lg">{isProcessing ? '생성 중' : '시작'}</button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            <div className="bg-white border-2 border-gray-300 rounded-3xl overflow-hidden shadow-md">
-              <textarea value={manualScript} onChange={(e) => setManualScript(e.target.value)} placeholder="직접 작성한 대본을 입력하세요. AI가 시각적 연출안을 생성합니다." className="w-full h-80 bg-transparent text-gray-900 p-8 focus:ring-0 focus:outline-none placeholder-gray-400 resize-none" disabled={isProcessing} />
+            <div className="bg-[#12121a] border-2 border-gray-300 rounded-3xl overflow-hidden shadow-md">
+              <textarea value={manualScript} onChange={(e) => setManualScript(e.target.value)} placeholder="직접 작성한 대본을 입력하세요. AI가 시각적 연출안을 생성합니다." className="w-full h-80 bg-transparent text-white p-8 focus:ring-0 focus:outline-none placeholder-gray-400 resize-none" disabled={isProcessing} />
             </div>
             <button type="submit" disabled={isProcessing || !manualScript.trim()} className="w-full bg-brand-600 hover:bg-brand-500 text-white font-black py-5 rounded-2xl transition-all disabled:opacity-50 uppercase tracking-widest text-sm shadow-lg">스토리보드 생성</button>
           </div>

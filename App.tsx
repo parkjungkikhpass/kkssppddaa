@@ -824,25 +824,25 @@ const App: React.FC = () => {
 
   // 편집기 뷰
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* 에디터 헤더 (뒤로가기 버튼 포함) */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b-2 border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={handleBackToDashboard}
-                className="p-2 rounded-xl bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-all"
+                className="p-2 rounded-xl bg-[#1a1a24] text-gray-400 hover:text-white hover:bg-[#252530] transition-all border border-gray-800/50"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 truncate max-w-md">
+                <h1 className="text-lg font-bold text-white truncate max-w-md">
                   {currentProject?.title || '새 프로젝트'}
                 </h1>
-                <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest">
                   {currentProject?.status === 'completed' ? '완료됨' :
                    currentProject?.status === 'in_progress' ? '작성 중' : '임시저장'}
                 </p>
@@ -850,7 +850,7 @@ const App: React.FC = () => {
               {/* 설정 수정 버튼 */}
               <button
                 onClick={handleBackToWizard}
-                className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-bold flex items-center gap-1.5 border border-blue-200"
+                className="px-3 py-1.5 rounded-lg bg-[#1a1a24] text-gray-300 hover:bg-[#252530] hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-gray-800/50"
                 title="영상 설정 수정"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -868,8 +868,8 @@ const App: React.FC = () => {
                   disabled={undoStack.length === 0}
                   className={`p-2 rounded-lg transition-colors ${
                     undoStack.length === 0
-                      ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-[#12121a] text-gray-600 cursor-not-allowed'
+                      : 'bg-[#1a1a24] text-gray-400 hover:bg-[#252530] hover:text-white border border-gray-800/50'
                   }`}
                   title="실행 취소 (Ctrl+Z)"
                 >
@@ -882,8 +882,8 @@ const App: React.FC = () => {
                   disabled={redoStack.length === 0}
                   className={`p-2 rounded-lg transition-colors ${
                     redoStack.length === 0
-                      ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-[#12121a] text-gray-600 cursor-not-allowed'
+                      : 'bg-[#1a1a24] text-gray-400 hover:bg-[#252530] hover:text-white border border-gray-800/50'
                   }`}
                   title="다시 실행 (Ctrl+Shift+Z)"
                 >
@@ -895,7 +895,7 @@ const App: React.FC = () => {
               {/* 저장 버튼 */}
               <button
                 onClick={saveCurrentProject}
-                className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors text-sm font-bold flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-[#1a1a24] text-gray-300 hover:bg-[#252530] hover:text-white transition-colors text-sm font-bold flex items-center gap-2 border border-gray-800/50"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
@@ -908,8 +908,8 @@ const App: React.FC = () => {
       </header>
 
       {needsKey && (
-        <div className="bg-amber-50 border-b border-amber-200 py-2 px-4 flex items-center justify-center gap-4 animate-in fade-in slide-in-from-top-4">
-          <span className="text-amber-600 text-xs font-bold">Gemini 3 Pro 엔진을 위해 API 키 설정이 필요합니다.</span>
+        <div className="bg-amber-900/30 border-b border-amber-700/50 py-2 px-4 flex items-center justify-center gap-4 animate-in fade-in slide-in-from-top-4">
+          <span className="text-amber-400 text-xs font-bold">Gemini 3 Pro 엔진을 위해 API 키 설정이 필요합니다.</span>
           <button onClick={handleOpenKeySelector} className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black rounded-lg hover:bg-amber-600 transition-colors uppercase">API 키 설정</button>
         </div>
       )}
@@ -919,13 +919,13 @@ const App: React.FC = () => {
 
         {step !== GenerationStep.IDLE && (
           <div className="max-w-7xl mx-auto px-4 text-center mb-12">
-             <div className="inline-flex items-center gap-4 px-6 py-3 rounded-2xl border-2 bg-white border-gray-200 shadow-lg">
+             <div className="inline-flex items-center gap-4 px-6 py-3 rounded-2xl border bg-[#1a1a24] border-gray-800/50">
                 {step === GenerationStep.SCRIPTING || step === GenerationStep.ASSETS ? (
-                  <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent animate-spin rounded-full"></div>
-                ) : <div className={`w-2 h-2 rounded-full ${step === GenerationStep.ERROR ? 'bg-red-500' : 'bg-green-500'}`}></div>}
-                <span className="text-sm font-bold text-gray-600">{progressMessage}</span>
+                  <div className="w-4 h-4 border-2 border-[#f06050] border-t-transparent animate-spin rounded-full"></div>
+                ) : <div className={`w-2 h-2 rounded-full ${step === GenerationStep.ERROR ? 'bg-red-500' : 'bg-emerald-500'}`}></div>}
+                <span className="text-sm font-bold text-gray-300">{progressMessage}</span>
                 {(step === GenerationStep.SCRIPTING || step === GenerationStep.ASSETS) && (
-                  <button onClick={handleAbort} className="ml-2 px-3 py-1 rounded-lg bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-200">Stop</button>
+                  <button onClick={handleAbort} className="ml-2 px-3 py-1 rounded-lg bg-red-900/30 text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-800/50 hover:bg-red-900/50">Stop</button>
                 )}
              </div>
           </div>

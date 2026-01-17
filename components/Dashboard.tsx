@@ -197,23 +197,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
   }, [projects]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0a0a0f]">
       {/* 헤더 */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b-2 border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* 로고 */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f06050] to-[#d94a3a] flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-black text-gray-900">
-                  TubeGen <span className="text-brand-500">Studio</span>
+                <h1 className="text-xl font-black text-white">
+                  TubeGen <span className="text-[#f06050]">Studio</span>
                 </h1>
-                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">
+                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest">
                   AI Video Automation
                 </p>
               </div>
@@ -224,7 +224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               {onAutopilotClick && (
                 <button
                   onClick={onAutopilotClick}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600 transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-emerald-500/25"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 text-white hover:from-emerald-500 hover:to-cyan-500 transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-emerald-500/20"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -235,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               {onSettingsClick && (
                 <button
                   onClick={onSettingsClick}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm font-bold"
+                  className="px-4 py-2.5 rounded-xl bg-[#1a1a24] text-gray-300 hover:bg-[#252530] hover:text-white transition-colors flex items-center gap-2 text-sm font-bold border border-gray-800/50"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -246,7 +246,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               )}
               <button
                 onClick={onNewProject}
-                className="px-5 py-2.5 rounded-xl bg-brand-500 text-white hover:bg-brand-600 transition-colors flex items-center gap-2 text-sm font-bold shadow-lg shadow-brand-500/25"
+                className="px-5 py-2.5 rounded-xl bg-[#f06050] text-white hover:bg-[#e05545] transition-colors flex items-center gap-2 text-sm font-bold shadow-lg shadow-[#f06050]/25"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -263,7 +263,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
         {/* 타이틀 섹션 */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">내 프로젝트</h2>
+            <h2 className="text-3xl font-bold text-white mb-2">내 프로젝트</h2>
             <p className="text-gray-500">AI 영상 자동화 프로젝트를 관리하세요</p>
           </div>
           {projects.length > 0 && (
@@ -271,8 +271,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               onClick={toggleSelectMode}
               className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold ${
                 isSelectMode
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-white text-gray-900'
+                  : 'bg-[#1a1a24] text-gray-300 hover:bg-[#252530] hover:text-white border border-gray-800/50'
               }`}
             >
               {isSelectMode ? (
@@ -296,7 +296,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
 
         {/* 선택 모드 액션 바 */}
         {isSelectMode && (
-          <div className="bg-gray-900 text-white rounded-2xl p-4 mb-6 flex items-center justify-between animate-in slide-in-from-top-2 duration-200">
+          <div className="bg-[#1a1a24] text-white rounded-2xl p-4 mb-6 flex items-center justify-between animate-in slide-in-from-top-2 duration-200 border border-gray-800/50">
             <div className="flex items-center gap-4">
               <button
                 onClick={toggleSelectAll}
@@ -304,11 +304,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               >
                 <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                   selectedIds.size === filteredProjects.length && filteredProjects.length > 0
-                    ? 'bg-white border-white'
-                    : 'border-white/50'
+                    ? 'bg-[#f06050] border-[#f06050]'
+                    : 'border-gray-500'
                 }`}>
                   {selectedIds.size === filteredProjects.length && filteredProjects.length > 0 && (
-                    <svg className="w-3 h-3 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
@@ -325,7 +325,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
                 selectedIds.size > 0
                   ? 'bg-red-500 hover:bg-red-600 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
               }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -337,11 +337,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
         )}
 
         {/* 검색 & 필터 바 */}
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-5 mb-8 shadow-md">
+        <div className="bg-[#1a1a24] border border-gray-800/50 rounded-2xl p-5 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* 검색창 */}
             <div className="flex-1 relative">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -349,12 +349,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="프로젝트 검색..."
-                className="w-full bg-gray-50 text-gray-900 border-2 border-gray-300 rounded-xl pl-12 pr-10 py-3 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white outline-none transition-all placeholder:text-gray-400"
+                className="w-full bg-[#12121a] text-white border border-gray-800/50 rounded-xl pl-12 pr-10 py-3 text-sm focus:border-[#f06050] focus:ring-2 focus:ring-[#f06050]/20 outline-none transition-all placeholder:text-gray-500"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-[#252530] text-gray-500 hover:text-white transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -369,7 +369,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortType)}
-                className="bg-gray-50 text-gray-700 border-2 border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 focus:border-brand-500 outline-none transition-all"
+                className="bg-[#12121a] text-gray-300 border border-gray-800/50 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-[#1a1a24] focus:border-[#f06050] outline-none transition-all"
               >
                 <option value="latest">최신순</option>
                 <option value="oldest">오래된순</option>
@@ -382,7 +382,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value as CategoryType | 'all')}
-                  className="bg-gray-50 text-gray-700 border-2 border-gray-300 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-gray-100 focus:border-brand-500 outline-none transition-all"
+                  className="bg-[#12121a] text-gray-300 border border-gray-800/50 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-[#1a1a24] focus:border-[#f06050] outline-none transition-all"
                 >
                   <option value="all">모든 카테고리</option>
                   {usedCategories.map(cat => (
@@ -398,42 +398,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
 
         {/* 상태 필터 탭 */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-xl border-2 border-gray-200">
+          <div className="flex items-center gap-1 bg-[#12121a] p-1.5 rounded-xl border border-gray-800/50">
             <button
               onClick={() => setFilter('all')}
               className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 filter === 'all'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-[#1a1a24] text-white'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-[#1a1a24]/50'
               }`}
             >
-              전체 <span className={`ml-1.5 ${filter === 'all' ? 'text-gray-400' : 'text-gray-400'}`}>{stats.total}</span>
+              전체 <span className={`ml-1.5 ${filter === 'all' ? 'text-gray-400' : 'text-gray-500'}`}>{stats.total}</span>
             </button>
             <button
               onClick={() => setFilter('in_progress')}
               className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 filter === 'in_progress'
-                  ? 'bg-amber-50 text-amber-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-amber-900/30 text-amber-400'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-[#1a1a24]/50'
               }`}
             >
-              작성 중 <span className={`ml-1.5 ${filter === 'in_progress' ? 'text-amber-500' : 'text-gray-400'}`}>{stats.inProgress}</span>
+              작성 중 <span className={`ml-1.5 ${filter === 'in_progress' ? 'text-amber-500' : 'text-gray-500'}`}>{stats.inProgress}</span>
             </button>
             <button
               onClick={() => setFilter('completed')}
               className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 filter === 'completed'
-                  ? 'bg-emerald-50 text-emerald-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-emerald-900/30 text-emerald-400'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-[#1a1a24]/50'
               }`}
             >
-              완료 <span className={`ml-1.5 ${filter === 'completed' ? 'text-emerald-500' : 'text-gray-400'}`}>{stats.completed}</span>
+              완료 <span className={`ml-1.5 ${filter === 'completed' ? 'text-emerald-500' : 'text-gray-500'}`}>{stats.completed}</span>
             </button>
           </div>
 
           {/* 검색 결과 수 */}
           {(searchQuery || categoryFilter !== 'all') && (
-            <span className="text-gray-500 text-sm font-medium">
+            <span className="text-gray-400 text-sm font-medium">
               {filteredProjects.length}개 결과
             </span>
           )}
@@ -442,8 +442,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
         {/* 로딩 상태 */}
         {isLoading ? (
           <div className="text-center py-20">
-            <div className="w-12 h-12 border-3 border-brand-500 border-t-transparent animate-spin rounded-full mx-auto mb-6"></div>
-            <p className="text-gray-500 font-medium">프로젝트를 불러오는 중...</p>
+            <div className="w-12 h-12 border-3 border-[#f06050] border-t-transparent animate-spin rounded-full mx-auto mb-6"></div>
+            <p className="text-gray-400 font-medium">프로젝트를 불러오는 중...</p>
           </div>
         ) : (
           <>
@@ -470,12 +470,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
             {/* 빈 상태 */}
             {filteredProjects.length === 0 && projects.length > 0 && (
               <div className="text-center py-20">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 rounded-2xl bg-[#1a1a24] flex items-center justify-center mx-auto mb-6 border border-gray-800/50">
+                  <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   {searchQuery ? `"${searchQuery}" 검색 결과가 없습니다` : '해당 조건의 프로젝트가 없습니다'}
                 </h3>
                 <p className="text-gray-500 text-sm mb-6">
@@ -488,7 +488,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
                       setCategoryFilter('all');
                       setFilter('all');
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors text-sm font-medium"
+                    className="px-5 py-2.5 rounded-xl bg-[#1a1a24] text-gray-300 hover:bg-[#252530] hover:text-white transition-colors text-sm font-medium border border-gray-800/50"
                   >
                     필터 초기화
                   </button>
@@ -499,19 +499,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
             {/* 처음 사용자 안내 */}
             {projects.length === 0 && (
               <div className="text-center py-20">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center mx-auto mb-8 shadow-lg">
-                  <svg className="w-10 h-10 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#f06050]/20 to-[#f06050]/10 flex items-center justify-center mx-auto mb-8 border border-[#f06050]/30">
+                  <svg className="w-10 h-10 text-[#f06050]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">첫 프로젝트를 만들어보세요</h3>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                <h3 className="text-2xl font-bold text-white mb-3">첫 프로젝트를 만들어보세요</h3>
+                <p className="text-gray-400 mb-8 max-w-md mx-auto">
                   AI가 자동으로 영상 대본, 이미지, 음성을 생성합니다.<br />
                   몇 분 만에 전문적인 영상 콘텐츠를 만들어보세요.
                 </p>
                 <button
                   onClick={onNewProject}
-                  className="px-8 py-4 rounded-xl bg-brand-500 text-white hover:bg-brand-600 transition-all font-semibold shadow-xl shadow-brand-500/30 hover:shadow-brand-600/40 hover:-translate-y-0.5"
+                  className="px-8 py-4 rounded-xl bg-[#f06050] text-white hover:bg-[#e05545] transition-all font-semibold shadow-xl shadow-[#f06050]/30 hover:shadow-[#f06050]/40 hover:-translate-y-0.5"
                 >
                   새 프로젝트 시작하기
                 </button>
