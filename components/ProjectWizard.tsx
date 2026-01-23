@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GenerationStep } from '../types';
 import { generateAudioWithElevenLabs, fetchElevenLabsVoices, ElevenLabsVoice } from '../services/elevenLabsService';
-import { generateAudioForScene } from '../services/geminiService';
+import { generateAudioForScene, generateImageForScene } from '../services/geminiService';
 import {
   CONFIG,
   GEMINI_VOICE_LIST,
@@ -179,8 +179,10 @@ interface ProjectWizardProps {
       zoomEffect?: ZoomEffectType,
       customStylePrompt?: string,
       characterType?: CharacterType,
-      characterRefImage?: string | null,
-      styleRefImage?: string | null
+      characterRefImages?: string[],  // 최대 4개
+      styleRefImages?: string[],       // 최대 2개
+      characterRefStrength?: number,  // 0-100%
+      styleRefStrength?: number       // 0-100%
     }
   ) => void;
   onBack: () => void;
@@ -200,12 +202,18 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
   // 캐릭터 설정
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterType>('none');
 
-  // 분리된 레퍼런스 이미지 (미드저니 스타일)
-  const [characterRefImage, setCharacterRefImage] = useState<string | null>(null);
-  const [styleRefImage, setStyleRefImage] = useState<string | null>(null);
+  // 분리된 레퍼런스 이미지 (미드저니 스타일) - 다중 이미지 지원
+  const MAX_CHARACTER_REFS = 4;  // 캐릭터 최대 4개
+  const MAX_STYLE_REFS = 2;      // 화풍 최대 2개
+  const [characterRefImages, setCharacterRefImages] = useState<string[]>([]);
+  const [styleRefImages, setStyleRefImages] = useState<string[]>([]);
+
+  // 레퍼런스 참조 강도 (0-100% 슬라이더)
+  const [characterRefStrength, setCharacterRefStrength] = useState<number>(100);
+  const [styleRefStrength, setStyleRefStrength] = useState<number>(100);
 
   // Step 2: 콘텐츠
-  const [activeTab, setActiveTab] = useState<'auto' | 'manual'>('auto');
+  const [activeTab, setActiveTab] = useState<'auto' | 'manual'>('manual');
   const [topic, setTopic] = useState('');
   const [manualScript, setManualScript] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('economy');
@@ -224,14 +232,14 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
   const [testingGeminiVoice, setTestingGeminiVoice] = useState<string | null>(null);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-  // 사용자가 선택한 즐겨찾기 목소리 목록 (기본값 없음 - 반드시 추가해야 함)
+  // 사용자가 선택한 즐겨찾기 목소리 목록 (기본 음성 포함)
   const [favoriteGeminiVoices, setFavoriteGeminiVoices] = useState<string[]>(() => {
     const saved = localStorage.getItem('tubegen_favorite_gemini_voices');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : ['kore']; // 기본 음성: Kore (여성)
   });
   const [favoriteElevenVoices, setFavoriteElevenVoices] = useState<string[]>(() => {
     const saved = localStorage.getItem('tubegen_favorite_eleven_voices');
-    return saved ? JSON.parse(saved) : [];
+    return saved ? JSON.parse(saved) : ['sSoVF9lUgTGJz0Xz3J9y']; // 기본 음성: Jina (여성)
   });
 
   // 음성 생성 관련 state
@@ -638,39 +646,86 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
     ));
   };
 
-  // 개별 씬 이미지 생성 (모의 - 실제 구현 시 API 연동 필요)
+  // 개별 씬 이미지 생성 (Gemini API 사용)
   const generateSceneImage = async (sceneId: number) => {
-    setScenes(prev => prev.map(scene =>
-      scene.id === sceneId ? { ...scene, isGenerating: true } : scene
+    const scene = scenes.find(s => s.id === sceneId);
+    if (!scene) return;
+
+    setScenes(prev => prev.map(s =>
+      s.id === sceneId ? { ...s, isGenerating: true } : s
     ));
 
     try {
-      // 실제 구현 시 여기서 이미지 생성 API 호출
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 모의 딜레이
+      console.log(`[Image Gen] 씬 ${sceneId} 이미지 생성 시작...`);
 
-      // 모의 이미지 URL (실제 구현 시 생성된 이미지 URL로 교체)
-      const placeholderImage = `https://picsum.photos/seed/${sceneId}/800/450`;
+      // SceneItem을 ScriptScene 형식으로 변환
+      const scriptScene = {
+        sceneNumber: scene.id,
+        narration: scene.script,
+        visualPrompt: scene.prompt
+      };
 
-      setScenes(prev => prev.map(scene =>
-        scene.id === sceneId ? { ...scene, imageUrl: placeholderImage, isGenerating: false } : scene
-      ));
-    } catch (error) {
-      console.error('이미지 생성 오류:', error);
-      setScenes(prev => prev.map(scene =>
-        scene.id === sceneId ? { ...scene, isGenerating: false } : scene
+      // Gemini API로 이미지 생성
+      const imageBase64 = await generateImageForScene(
+        scriptScene,
+        referenceImages,           // 레퍼런스 이미지
+        selectedAspectRatio,       // 비율 (16:9, 1:1 등)
+        selectedStyle,             // 스타일
+        customStylePrompt,         // 커스텀 스타일 프롬프트
+        selectedCharacter,         // 캐릭터 타입
+        characterRefImages,        // 캐릭터 레퍼런스 이미지
+        styleRefImages,            // 화풍 레퍼런스 이미지
+        characterRefStrength,      // 캐릭터 강도
+        styleRefStrength           // 화풍 강도
+      );
+
+      if (imageBase64) {
+        // Base64를 Data URL로 변환
+        const imageUrl = `data:image/png;base64,${imageBase64}`;
+        console.log(`[Image Gen] 씬 ${sceneId} 이미지 생성 완료!`);
+
+        setScenes(prev => prev.map(s =>
+          s.id === sceneId ? { ...s, imageUrl, isGenerating: false } : s
+        ));
+      } else {
+        throw new Error('이미지 생성 결과가 없습니다');
+      }
+    } catch (error: any) {
+      console.error(`[Image Gen] 씬 ${sceneId} 이미지 생성 오류:`, error);
+      alert(`이미지 생성 실패: ${error.message || '알 수 없는 오류'}`);
+      setScenes(prev => prev.map(s =>
+        s.id === sceneId ? { ...s, isGenerating: false } : s
       ));
     }
   };
 
-  // 전체 씬 이미지 생성
+  // 전체 씬 이미지 생성 (병렬 처리 - 2개씩 동시 생성)
   const generateAllSceneImages = async () => {
     setIsGeneratingAllImages(true);
 
-    for (const scene of scenes) {
-      if (!scene.imageUrl) {
-        await generateSceneImage(scene.id);
-      }
+    // 이미지가 없는 씬만 필터링
+    const scenesToGenerate = scenes.filter(scene => !scene.imageUrl);
+    const BATCH_SIZE = 2; // 병렬 처리 개수 (API Rate Limit 고려)
+
+    console.log(`[Image Gen] 총 ${scenesToGenerate.length}개 씬 이미지 생성 시작 (${BATCH_SIZE}개씩 병렬 처리)`);
+    const startTime = Date.now();
+
+    // 배치 단위로 병렬 처리
+    for (let i = 0; i < scenesToGenerate.length; i += BATCH_SIZE) {
+      const batch = scenesToGenerate.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(scenesToGenerate.length / BATCH_SIZE);
+
+      console.log(`[Image Gen] 배치 ${batchNum}/${totalBatches} 시작 (씬 ${batch.map(s => s.id).join(', ')})`);
+
+      // Promise.allSettled로 병렬 실행 (하나가 실패해도 나머지 계속 진행)
+      await Promise.allSettled(
+        batch.map(scene => generateSceneImage(scene.id))
+      );
     }
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[Image Gen] 전체 이미지 생성 완료! 총 소요시간: ${elapsed}초`);
 
     setIsGeneratingAllImages(false);
   };
@@ -741,8 +796,10 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
       zoomEffect: zoomEffect,
       customStylePrompt: customStylePrompt,
       characterType: selectedCharacter,
-      characterRefImage: characterRefImage,
-      styleRefImage: styleRefImage
+      characterRefImages: characterRefImages,
+      styleRefImages: styleRefImages,
+      characterRefStrength: characterRefStrength,
+      styleRefStrength: styleRefStrength
     };
     if (activeTab === 'auto') {
       if (topic.trim()) onGenerate(topic, referenceImages, null, ttsConfig, genOptions);
@@ -757,7 +814,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
       // 스타일을 선택해야 다음 단계로 진행 가능
       // 단, 커스텀 스타일 프롬프트나 레퍼런스 이미지가 있으면 스타일 선택 없이도 진행 가능
       const hasCustomStyle = customStylePrompt.trim().length > 0 || referenceImages.length > 0;
-      const hasNewRefs = !!characterRefImage || !!styleRefImage;
+      const hasNewRefs = characterRefImages.length > 0 || styleRefImages.length > 0;
       return selectedStyle !== '' || hasCustomStyle || hasNewRefs;
     }
     if (currentStep === 2) return activeTab === 'auto' ? topic.trim().length > 0 : manualScript.trim().length > 0;
@@ -952,7 +1009,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                 <h3 className="text-sm font-bold text-gray-400 mb-2 text-center">
                   스타일 선택 <span className="text-red-400">*</span>
                 </h3>
-                {selectedStyle === '' && customStylePrompt.trim() === '' && referenceImages.length === 0 && !characterRefImage && !styleRefImage && (
+                {selectedStyle === '' && customStylePrompt.trim() === '' && referenceImages.length === 0 && characterRefImages.length === 0 && styleRefImages.length === 0 && (
                   <p className="text-xs text-amber-400 text-center mb-4">
                     ⚠️ 스타일을 선택하거나, 아래에서 커스텀 프롬프트/레퍼런스 이미지를 입력해주세요
                   </p>
@@ -1012,50 +1069,60 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                 </div>
               </div>
 
-              {/* 레퍼런스 이미지 (캐릭터/화풍 분리) */}
+              {/* 레퍼런스 이미지 (캐릭터/화풍 분리) - 다중 이미지 지원 */}
               <div className="mt-8">
                 <h3 className="text-sm font-bold text-gray-600 mb-2 text-center">🎨 레퍼런스 이미지 (선택)</h3>
                 <p className="text-xs text-gray-400 text-center mb-4">
                   미드저니처럼 캐릭터와 화풍을 각각 참조할 수 있어요
                 </p>
                 <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 캐릭터 레퍼런스 */}
+                  {/* 캐릭터 레퍼런스 (최대 4개) */}
                   <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg">🧍</span>
-                      <span className="text-sm font-bold text-gray-600">캐릭터 레퍼런스</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🧍</span>
+                        <span className="text-sm font-bold text-gray-600">캐릭터 레퍼런스</span>
+                      </div>
+                      <span className="text-xs text-purple-500 font-bold">
+                        {characterRefImages.length}/{MAX_CHARACTER_REFS}
+                      </span>
                     </div>
                     <p className="text-[10px] text-gray-400 mb-3">
-                      캐릭터 디자인, 외형, 복장을 참조합니다
+                      캐릭터 디자인, 외형, 복장을 참조합니다 (최대 {MAX_CHARACTER_REFS}개)
                     </p>
-                    <div className="flex justify-center">
-                      {characterRefImage ? (
-                        <div className="relative group">
-                          <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-purple-300">
-                            <img src={characterRefImage} alt="Character Ref" className="w-full h-full object-cover" />
+                    {/* 이미지 그리드 */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {/* 업로드된 이미지들 */}
+                      {characterRefImages.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <div className="w-full aspect-square rounded-lg overflow-hidden border-2 border-purple-300">
+                            <img src={img} alt={`Character Ref ${idx + 1}`} className="w-full h-full object-cover" />
                           </div>
                           <button
-                            onClick={() => setCharacterRefImage(null)}
+                            onClick={() => setCharacterRefImages(prev => prev.filter((_, i) => i !== idx))}
                             className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
                         </div>
-                      ) : (
-                        <label className="w-28 h-28 border-2 border-dashed border-purple-300 rounded-xl flex flex-col items-center justify-center text-purple-400 hover:border-purple-500 hover:text-purple-500 transition-all cursor-pointer">
-                          <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      ))}
+                      {/* 추가 버튼 (최대 개수 미만일 때만 표시) */}
+                      {characterRefImages.length < MAX_CHARACTER_REFS && (
+                        <label className="w-full aspect-square border-2 border-dashed border-purple-300 rounded-lg flex flex-col items-center justify-center text-purple-400 hover:border-purple-500 hover:text-purple-500 transition-all cursor-pointer">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                          <span className="text-[10px]">캐릭터 추가</span>
                           <input
                             type="file"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) {
+                              if (file && characterRefImages.length < MAX_CHARACTER_REFS) {
                                 const reader = new FileReader();
-                                reader.onload = (ev) => setCharacterRefImage(ev.target?.result as string);
+                                reader.onload = (ev) => {
+                                  setCharacterRefImages(prev => [...prev, ev.target?.result as string]);
+                                };
                                 reader.readAsDataURL(file);
                               }
                             }}
@@ -1065,45 +1132,77 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                         </label>
                       )}
                     </div>
+                    {/* 캐릭터 참조 강도 조절 (슬라이더) */}
+                    {characterRefImages.length > 0 && (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-[9px] text-gray-400 mb-1">
+                          <span>약하게</span>
+                          <span className="font-bold text-purple-600">{characterRefStrength}%</span>
+                          <span>강하게</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={characterRefStrength}
+                          onChange={(e) => setCharacterRefStrength(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        />
+                        <p className="text-[8px] text-gray-400 text-center mt-1">
+                          {characterRefStrength <= 30 ? '🌫️ 느슨하게 참조' :
+                           characterRefStrength <= 70 ? '⚖️ 적당히 참조' : '🎯 엄격하게 참조'}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 화풍 레퍼런스 */}
+                  {/* 화풍 레퍼런스 (최대 2개) */}
                   <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg">🖼️</span>
-                      <span className="text-sm font-bold text-gray-600">화풍 레퍼런스</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🖼️</span>
+                        <span className="text-sm font-bold text-gray-600">화풍 레퍼런스</span>
+                      </div>
+                      <span className="text-xs text-cyan-500 font-bold">
+                        {styleRefImages.length}/{MAX_STYLE_REFS}
+                      </span>
                     </div>
                     <p className="text-[10px] text-gray-400 mb-3">
-                      색감, 분위기, 그림체를 참조합니다
+                      색감, 분위기, 그림체를 참조합니다 (최대 {MAX_STYLE_REFS}개)
                     </p>
-                    <div className="flex justify-center">
-                      {styleRefImage ? (
-                        <div className="relative group">
-                          <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-cyan-300">
-                            <img src={styleRefImage} alt="Style Ref" className="w-full h-full object-cover" />
+                    {/* 이미지 그리드 (화풍은 2개라 크게 표시) */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* 업로드된 이미지들 */}
+                      {styleRefImages.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <div className="w-full aspect-square rounded-lg overflow-hidden border-2 border-cyan-300">
+                            <img src={img} alt={`Style Ref ${idx + 1}`} className="w-full h-full object-cover" />
                           </div>
                           <button
-                            onClick={() => setStyleRefImage(null)}
+                            onClick={() => setStyleRefImages(prev => prev.filter((_, i) => i !== idx))}
                             className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
                         </div>
-                      ) : (
-                        <label className="w-28 h-28 border-2 border-dashed border-cyan-300 rounded-xl flex flex-col items-center justify-center text-cyan-400 hover:border-cyan-500 hover:text-cyan-500 transition-all cursor-pointer">
-                          <svg className="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      ))}
+                      {/* 추가 버튼 (최대 개수 미만일 때만 표시) */}
+                      {styleRefImages.length < MAX_STYLE_REFS && (
+                        <label className="w-full aspect-square border-2 border-dashed border-cyan-300 rounded-lg flex flex-col items-center justify-center text-cyan-400 hover:border-cyan-500 hover:text-cyan-500 transition-all cursor-pointer">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                          <span className="text-[10px]">화풍 추가</span>
                           <input
                             type="file"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) {
+                              if (file && styleRefImages.length < MAX_STYLE_REFS) {
                                 const reader = new FileReader();
-                                reader.onload = (ev) => setStyleRefImage(ev.target?.result as string);
+                                reader.onload = (ev) => {
+                                  setStyleRefImages(prev => [...prev, ev.target?.result as string]);
+                                };
                                 reader.readAsDataURL(file);
                               }
                             }}
@@ -1113,6 +1212,28 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                         </label>
                       )}
                     </div>
+                    {/* 화풍 참조 강도 조절 (슬라이더) */}
+                    {styleRefImages.length > 0 && (
+                      <div className="mt-3">
+                        <div className="flex justify-between text-[9px] text-gray-400 mb-1">
+                          <span>약하게</span>
+                          <span className="font-bold text-cyan-600">{styleRefStrength}%</span>
+                          <span>강하게</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={styleRefStrength}
+                          onChange={(e) => setStyleRefStrength(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                        />
+                        <p className="text-[8px] text-gray-400 text-center mt-1">
+                          {styleRefStrength <= 30 ? '🌫️ 느슨하게 참조' :
+                           styleRefStrength <= 70 ? '⚖️ 적당히 참조' : '🎯 엄격하게 참조'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3 text-center">
@@ -1196,52 +1317,15 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                 </div>
               </div>
 
-              {/* 탭 선택 */}
-              <div className="flex justify-center mb-6">
-                <div className="bg-gray-100 p-1 rounded-xl flex gap-1 border-2 border-gray-200">
-                  <button
-                    onClick={() => setActiveTab('auto')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === 'auto' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    자동 트렌드
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('manual')}
-                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === 'manual' ? 'bg-brand-500 text-white' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    수동 대본
-                  </button>
-                </div>
+              {/* 입력 필드 - 수동 대본만 */}
+              <div className="max-w-2xl mx-auto">
+                <textarea
+                  value={manualScript}
+                  onChange={(e) => setManualScript(e.target.value)}
+                  placeholder="직접 작성한 대본을 입력하세요. AI가 시각적 연출안을 생성합니다."
+                  className="w-full h-48 bg-gray-50 text-gray-900 border-2 border-gray-300 rounded-2xl px-6 py-4 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white outline-none transition-all placeholder:text-gray-400 resize-none"
+                />
               </div>
-
-              {/* 입력 필드 */}
-              {activeTab === 'auto' ? (
-                <div className="max-w-xl mx-auto">
-                  <input
-                    type="text"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder={`${currentCategory?.name || '경제'} 관련 키워드 입력...`}
-                    className="w-full bg-gray-50 text-gray-900 border-2 border-gray-300 rounded-2xl px-6 py-4 text-lg focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white outline-none transition-all placeholder:text-gray-400"
-                  />
-                  <p className="text-center text-gray-400 text-xs mt-3">
-                    💡 키워드를 입력하면 AI가 트렌드 대본을 자동 생성합니다
-                  </p>
-                </div>
-              ) : (
-                <div className="max-w-2xl mx-auto">
-                  <textarea
-                    value={manualScript}
-                    onChange={(e) => setManualScript(e.target.value)}
-                    placeholder="직접 작성한 대본을 입력하세요..."
-                    className="w-full h-48 bg-gray-50 text-gray-900 border-2 border-gray-300 rounded-2xl px-6 py-4 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white outline-none transition-all placeholder:text-gray-400 resize-none"
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -1260,26 +1344,19 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-gray-700">📝 스크립트 편집</h3>
                     <span className="text-[10px] text-gray-400 bg-gray-200 px-2 py-1 rounded-full">
-                      {activeTab === 'auto' ? '자동 생성 예정' : '수동 입력'}
+                      수동 입력
                     </span>
                   </div>
                   <div className="relative">
                     <textarea
-                      value={activeTab === 'auto' ? `주제: ${topic}\n\n(AI가 자동으로 스크립트를 생성합니다)` : manualScript}
-                      onChange={(e) => activeTab === 'manual' && setManualScript(e.target.value)}
-                      readOnly={activeTab === 'auto'}
+                      value={manualScript}
+                      onChange={(e) => setManualScript(e.target.value)}
                       placeholder="스크립트 내용이 여기에 표시됩니다..."
-                      className={`w-full h-48 bg-white text-gray-900 border-2 border-gray-200 rounded-xl px-4 py-3 text-sm leading-relaxed resize-none outline-none transition-all ${
-                        activeTab === 'auto'
-                          ? 'cursor-not-allowed text-gray-500'
-                          : 'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20'
-                      }`}
+                      className="w-full h-48 bg-white text-gray-900 border-2 border-gray-200 rounded-xl px-4 py-3 text-sm leading-relaxed resize-none outline-none transition-all focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                     />
-                    {activeTab === 'manual' && (
-                      <div className="absolute bottom-3 right-3 text-[10px] text-gray-400">
-                        {manualScript.length} / 5,000자
-                      </div>
-                    )}
+                    <div className="absolute bottom-3 right-3 text-[10px] text-gray-400">
+                      {manualScript.length} / 5,000자
+                    </div>
                   </div>
                 </div>
 
@@ -1992,7 +2069,7 @@ const ProjectWizard: React.FC<ProjectWizardProps> = ({ onGenerate, onBack, step 
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            이미지 생성
+                            {getSelectedScene()?.imageUrl ? '다시 생성' : '이미지 생성'}
                           </>
                         )}
                       </button>

@@ -58,7 +58,8 @@ const formatRelativeTime = (timestamp: number): string => {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick, onDelete, onDuplicate, isSelectMode, isSelected, onSelect }) => {
   const [imageError, setImageError] = React.useState(false);
-  const statusStyle = STATUS_STYLES[project.status];
+  // 방어 코드: status가 없거나 알 수 없는 값이면 기본값(draft) 사용
+  const statusStyle = STATUS_STYLES[project.status] || STATUS_STYLES.draft;
   const categoryInfo = getCategoryInfo(project.category);
   const styleInfo = getStyleInfo(project.style);
 

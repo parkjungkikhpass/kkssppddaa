@@ -210,6 +210,7 @@ export interface VideoExportOptions {
   enableSubtitles?: boolean;  // 자막 활성화 여부 (기본: true)
   subtitleConfig?: Partial<SubtitleConfig>;
   zoomScale?: number;  // 줌 효과 스케일 (0 = 없음, 0.05 = 5%, 0.1 = 10%, 0.15 = 15%)
+  enableAudio?: boolean;  // 오디오 활성화 여부 (기본: true) - false면 무음 영상 출력
 }
 
 // 실제 렌더링된 자막 타이밍 기록용 인터페이스
@@ -236,6 +237,7 @@ export const generateVideo = async (
   const enableSubtitles = options?.enableSubtitles ?? true;
   const config: SubtitleConfig = { ...DEFAULT_SUBTITLE_CONFIG, ...options?.subtitleConfig };
   const zoomScale = options?.zoomScale ?? 0.1; // 기본 10% 줌
+  const enableAudio = options?.enableAudio ?? true; // 기본: 오디오 포함
 
   // 이미지가 있는 모든 씬 포함 (오디오 없으면 기본 3초)
   const validAssets = assets.filter(a => a.imageData);
@@ -432,12 +434,11 @@ export const generateVideo = async (
     const masterStartTime = audioCtx.currentTime + initialDelay;
 
     preparedScenes.forEach(scene => {
-      // 오디오가 있는 씬만 스케줄링
-      if (scene.audioBuffer) {
+      // 오디오가 있는 씬만 스케줄링 (enableAudio가 false면 오디오 재생 안 함)
+      if (scene.audioBuffer && enableAudio) {
         const source = audioCtx.createBufferSource();
         source.buffer = scene.audioBuffer;
-        source.connect(destination);
-        source.connect(audioCtx.destination);
+        source.connect(destination);  // MP4에만 녹음 (스피커 출력 없음)
         source.start(masterStartTime + scene.startTime);
         source.stop(masterStartTime + scene.endTime);
       }

@@ -57,7 +57,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onNewProject, onOpenProject, onSe
 
         // IndexedDB에서 프로젝트 로드
         const loadedProjects = await loadProjectsFromDB();
-        setProjects(loadedProjects);
+
+        // 중복 ID 필터링 (동일한 ID가 있으면 최신 것만 유지)
+        const uniqueProjects = loadedProjects.reduce<Project[]>((acc, project) => {
+          const existing = acc.find((p: Project) => p.id === project.id);
+          if (!existing) {
+            acc.push(project);
+          } else if (project.updatedAt > existing.updatedAt) {
+            // 더 최신 프로젝트로 교체
+            const idx = acc.indexOf(existing);
+            acc[idx] = project;
+          }
+          return acc;
+        }, []);
+
+        if (uniqueProjects.length !== loadedProjects.length) {
+          console.warn(`[Dashboard] 중복 ID 프로젝트 ${loadedProjects.length - uniqueProjects.length}개 제거됨`);
+        }
+
+        setProjects(uniqueProjects);
       } catch (e) {
         console.error('[Dashboard] 프로젝트 로드 실패:', e);
       } finally {

@@ -12,6 +12,40 @@ export const ENV_CONFIG = {
   ELEVENLABS_VOICE_ID: import.meta.env.VITE_ELEVENLABS_VOICE_ID || '',
 };
 
+// 배치 처리 설정 - API rate limit 방지 및 병렬 처리 최적화
+export const BATCH_CONFIG = {
+  // Gemini TTS: 가벼운 작업이므로 3개씩 병렬 처리
+  GEMINI_TTS: { batchSize: 3, delay: 1000 },
+  // Gemini 이미지: 무거운 작업이므로 2개씩 병렬 처리
+  GEMINI_IMAGE: { batchSize: 2, delay: 2000 },
+  // ElevenLabs TTS: 빠른 응답이므로 5개씩 병렬 처리
+  ELEVENLABS_TTS: { batchSize: 5, delay: 500 },
+  // FAL 비디오: 가장 무거우므로 1개씩 순차 처리
+  FAL_VIDEO: { batchSize: 1, delay: 1500 },
+};
+
+// 타임아웃 설정 - 대용량 대본 처리 및 무한 대기 방지
+export const TIMEOUT_CONFIG = {
+  // 전체 생성 작업 타임아웃: 30분
+  TOTAL_GENERATION: 30 * 60 * 1000,
+  // 스크립트 생성 타임아웃: 3분 (대용량 대본 대응)
+  SCRIPT_GENERATION: 3 * 60 * 1000,
+  // 이미지 생성 타임아웃: 1분/씬
+  IMAGE_PER_SCENE: 60 * 1000,
+  // 오디오 생성 타임아웃: 30초/씬
+  AUDIO_PER_SCENE: 30 * 1000,
+};
+
+// 대용량 대본 처리 설정
+export const LARGE_SCRIPT_CONFIG = {
+  // 청크 분할 기준 (3000자 초과 시 분할)
+  CHUNK_THRESHOLD: 3000,
+  // 청크 크기 (분할 시 각 청크의 최대 크기)
+  CHUNK_SIZE: 3000,
+  // 청크 간 딜레이 (API rate limit 방지)
+  CHUNK_DELAY: 2000,
+};
+
 export const CONFIG = {
   // 기본 설정값들
   DEFAULT_VOICE_ID: ENV_CONFIG.ELEVENLABS_VOICE_ID || "sSoVF9lUgTGJz0Xz3J9y", // Jina - 한국어 여성

@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, memo, useCallback } from 'react';
 import { GeneratedAsset } from '../types';
 import { downloadProjectZip } from '../utils/csvHelper';
 import { downloadSrt } from '../services/srtService';
@@ -8,11 +8,21 @@ interface ResultTableProps {
   data: GeneratedAsset[];
   onRegenerateImage?: (index: number) => void;
   onUpgradeImage?: (index: number) => void;
-  onExportVideo?: (enableSubtitles: boolean) => void;
+  onExportVideo?: (enableSubtitles: boolean, enableAudio?: boolean) => void;  // enableAudio 추가 (무음 내보내기용)
   onGenerateAnimation?: (index: number) => void;  // 영상 변환 콜백
   isExporting?: boolean;
   animatingIndices?: Set<number>;  // 현재 영상 변환 중인 인덱스들
   aspectRatio?: string;  // 선택한 비율 (16:9, 9:16, 1:1)
+}
+
+// 씬 행 컴포넌트 Props
+interface SceneRowProps {
+  row: GeneratedAsset;
+  index: number;
+  aspectRatio: string;
+  isAnimating: boolean;
+  onRegenerateImage?: (index: number) => void;
+  onGenerateAnimation?: (index: number) => void;
 }
 
 // 비율에 따른 CSS 클래스 반환
@@ -54,7 +64,9 @@ async function decodeAudio(base64: string, ctx: AudioContext): Promise<AudioBuff
   }
 }
 
-const AudioPlayer: React.FC<{ base64: string }> = ({ base64 }) => {
+// 오디오 플레이어 컴포넌트 - React.memo로 메모이제이션
+// base64 데이터가 동일하면 리렌더링하지 않음
+const AudioPlayer = memo<{ base64: string }>(({ base64 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -74,7 +86,7 @@ const AudioPlayer: React.FC<{ base64: string }> = ({ base64 }) => {
       }
       const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') await ctx.resume();
-      
+
       const audioBuffer = await decodeAudio(base64, ctx);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -90,7 +102,126 @@ const AudioPlayer: React.FC<{ base64: string }> = ({ base64 }) => {
       {isPlaying ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> : <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}
     </button>
   );
-}
+}, (prevProps, nextProps) => {
+  // base64 데이터가 동일하면 리렌더링하지 않음
+  return prevProps.base64 === nextProps.base64;
+});
+AudioPlayer.displayName = 'AudioPlayer';
+
+// 씬 행 컴포넌트 - React.memo로 메모이제이션
+// 중요한 데이터가 변경되지 않으면 리렌더링하지 않음
+const SceneRow = memo<SceneRowProps>(({
+  row,
+  index,
+  aspectRatio,
+  isAnimating,
+  onRegenerateImage,
+  onGenerateAnimation
+}) => {
+  return (
+    <tr className="group hover:bg-slate-800/20 transition-colors">
+      <td className="py-5 px-6 align-top font-mono text-slate-600 text-[10px]">#{row.sceneNumber.toString().padStart(2, '0')}</td>
+      <td className="py-5 px-6 align-top">
+        <div className="space-y-3">
+          <p className="text-slate-200 text-[11px] leading-relaxed font-medium tracking-tight">{row.narration}</p>
+          {row.analysis && (
+            <div className="space-y-2">
+                <div className="flex flex-wrap gap-1">
+                    <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border uppercase ${
+                      row.analysis.composition_type === 'MACRO' ? 'text-brand-400 bg-brand-400/5 border-brand-400/20' :
+                      row.analysis.composition_type === 'STANDARD' ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' :
+                      'text-amber-400 bg-amber-400/5 border-amber-400/20'
+                    }`}>{row.analysis.composition_type} {row.analysis.camera.distance}</span>
+                    <span className="text-[7px] font-black text-red-400 bg-red-400/5 px-1.5 py-0.5 rounded border border-red-800/20 uppercase">{row.analysis.metaphor_category}</span>
+                </div>
+                <div className="p-2 bg-slate-950/50 rounded-lg border border-slate-800/50">
+                    <p className="text-[7px] text-slate-500 font-black uppercase mb-1">비주얼 메타포</p>
+                    <p className="text-[9px] text-slate-300 leading-tight">
+                        <span className="text-brand-400 font-bold">{row.analysis.visual_metaphor.object}</span>: {row.analysis.visual_metaphor.interaction}
+                    </p>
+                </div>
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="py-5 px-6 align-top">
+        <div className="bg-slate-950/30 rounded-lg p-3 border border-slate-800/50 text-[9px] text-slate-600 font-mono leading-tight whitespace-pre-wrap">
+          {row.visualPrompt}
+        </div>
+      </td>
+      <td className="py-5 px-6 align-top">
+        <div className={`relative ${getAspectRatioClass(aspectRatio)} ${getContainerWidth(aspectRatio)} mx-auto rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner group/img`}>
+          {row.status === 'generating' ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent animate-spin rounded-full"></div>
+              <span className="text-[7px] text-brand-500 font-black uppercase tracking-widest">렌더링 중</span>
+            </div>
+          ) : isAnimating ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-cyan-950/30">
+              <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent animate-spin rounded-full"></div>
+              <span className="text-[7px] text-cyan-400 font-black uppercase tracking-widest">영상 변환 중</span>
+            </div>
+          ) : row.status === 'error' ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-red-950/30 border-2 border-dashed border-red-800/50 m-2 rounded-lg">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span className="text-[8px] text-red-400 font-black uppercase">생성 실패</span>
+              <button
+                onClick={() => onRegenerateImage?.(index)}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                다시 생성
+              </button>
+            </div>
+          ) : row.videoData ? (
+            <>
+              <video src={row.videoData} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+              <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-cyan-500/80 text-[6px] font-black text-white uppercase">영상</div>
+              <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-1.5">
+                <button onClick={() => onRegenerateImage?.(index)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all" title="이미지 재생성">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+                <button onClick={() => onGenerateAnimation?.(index)} className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 text-cyan-400 transition-all" title="영상 재생성">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+              </div>
+            </>
+          ) : row.imageData ? (
+            <>
+              <img src={`data:image/jpeg;base64,${row.imageData}`} className="w-full h-full object-cover transition-transform group-hover/img:scale-105" alt="Scene" />
+              <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-1.5">
+                <button onClick={() => onRegenerateImage?.(index)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all" title="이미지 재생성">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+                <button onClick={() => onGenerateAnimation?.(index)} className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 text-cyan-400 transition-all" title="영상 변환">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+              </div>
+            </>
+          ) : <div className="absolute inset-0 flex items-center justify-center border-2 border-dashed border-slate-800 m-2 rounded-lg"><span className="text-[7px] text-slate-700 font-black uppercase">대기 중</span></div>}
+        </div>
+      </td>
+      <td className="py-5 px-6 align-top text-center">
+        {row.audioData ? <div className="flex justify-center"><AudioPlayer base64={row.audioData} /></div> : <div className="flex flex-col items-center gap-1.5 opacity-30"><div className="w-2.5 h-2.5 border-2 border-slate-700 border-t-slate-500 animate-spin rounded-full"></div><span className="text-[6px] text-slate-600 font-black uppercase">VO</span></div>}
+      </td>
+    </tr>
+  );
+}, (prevProps, nextProps) => {
+  // 중요한 데이터만 비교하여 불필요한 리렌더링 방지
+  return (
+    prevProps.row.imageData === nextProps.row.imageData &&
+    prevProps.row.audioData === nextProps.row.audioData &&
+    prevProps.row.videoData === nextProps.row.videoData &&
+    prevProps.row.status === nextProps.row.status &&
+    prevProps.isAnimating === nextProps.isAnimating &&
+    prevProps.aspectRatio === nextProps.aspectRatio
+  );
+});
+SceneRow.displayName = 'SceneRow';
 
 const ResultTable: React.FC<ResultTableProps> = ({ data, onRegenerateImage, onExportVideo, onGenerateAnimation, isExporting, animatingIndices, aspectRatio = '16:9' }) => {
   if (data.length === 0) return null;
@@ -174,96 +305,15 @@ const ResultTable: React.FC<ResultTableProps> = ({ data, onRegenerateImage, onEx
             </thead>
             <tbody className="divide-y divide-slate-800/40">
               {data.map((row, index) => (
-                <tr key={row.sceneNumber} className="group hover:bg-slate-800/20 transition-colors">
-                  <td className="py-5 px-6 align-top font-mono text-slate-600 text-[10px]">#{row.sceneNumber.toString().padStart(2, '0')}</td>
-                  <td className="py-5 px-6 align-top">
-                    <div className="space-y-3">
-                      <p className="text-slate-200 text-[11px] leading-relaxed font-medium tracking-tight">{row.narration}</p>
-                      {row.analysis && (
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1">
-                                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border uppercase ${
-                                  row.analysis.composition_type === 'MACRO' ? 'text-brand-400 bg-brand-400/5 border-brand-400/20' :
-                                  row.analysis.composition_type === 'STANDARD' ? 'text-emerald-400 bg-emerald-400/5 border-emerald-400/20' :
-                                  'text-amber-400 bg-amber-400/5 border-amber-400/20'
-                                }`}>{row.analysis.composition_type} {row.analysis.camera.distance}</span>
-                                <span className="text-[7px] font-black text-red-400 bg-red-400/5 px-1.5 py-0.5 rounded border border-red-800/20 uppercase">{row.analysis.metaphor_category}</span>
-                            </div>
-                            <div className="p-2 bg-slate-950/50 rounded-lg border border-slate-800/50">
-                                <p className="text-[7px] text-slate-500 font-black uppercase mb-1">비주얼 메타포</p>
-                                <p className="text-[9px] text-slate-300 leading-tight">
-                                    <span className="text-brand-400 font-bold">{row.analysis.visual_metaphor.object}</span>: {row.analysis.visual_metaphor.interaction}
-                                </p>
-                            </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-5 px-6 align-top">
-                    <div className="bg-slate-950/30 rounded-lg p-3 border border-slate-800/50 text-[9px] text-slate-600 font-mono leading-tight whitespace-pre-wrap">
-                      {row.visualPrompt}
-                    </div>
-                  </td>
-                  <td className="py-5 px-6 align-top">
-                    <div className={`relative ${getAspectRatioClass(aspectRatio)} ${getContainerWidth(aspectRatio)} mx-auto rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner group/img`}>
-                      {row.status === 'generating' ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                          <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent animate-spin rounded-full"></div>
-                          <span className="text-[7px] text-brand-500 font-black uppercase tracking-widest">렌더링 중</span>
-                        </div>
-                      ) : animatingIndices?.has(index) ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-cyan-950/30">
-                          <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent animate-spin rounded-full"></div>
-                          <span className="text-[7px] text-cyan-400 font-black uppercase tracking-widest">영상 변환 중</span>
-                        </div>
-                      ) : row.status === 'error' ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-red-950/30 border-2 border-dashed border-red-800/50 m-2 rounded-lg">
-                          <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                          </svg>
-                          <span className="text-[8px] text-red-400 font-black uppercase">생성 실패</span>
-                          <button
-                            onClick={() => onRegenerateImage?.(index)}
-                            className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg"
-                          >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            다시 생성
-                          </button>
-                        </div>
-                      ) : row.videoData ? (
-                        <>
-                          <video src={row.videoData} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-cyan-500/80 text-[6px] font-black text-white uppercase">영상</div>
-                          <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-1.5">
-                            <button onClick={() => onRegenerateImage?.(index)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all" title="이미지 재생성">
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                            </button>
-                            <button onClick={() => onGenerateAnimation?.(index)} className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 text-cyan-400 transition-all" title="영상 재생성">
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </button>
-                          </div>
-                        </>
-                      ) : row.imageData ? (
-                        <>
-                          <img src={`data:image/jpeg;base64,${row.imageData}`} className="w-full h-full object-cover transition-transform group-hover/img:scale-105" alt="Scene" />
-                          <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover/img:opacity-100 transition-all flex items-center justify-center gap-1.5">
-                            <button onClick={() => onRegenerateImage?.(index)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all" title="이미지 재생성">
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                            </button>
-                            <button onClick={() => onGenerateAnimation?.(index)} className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 text-cyan-400 transition-all" title="영상 변환">
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </button>
-                          </div>
-                        </>
-                      ) : <div className="absolute inset-0 flex items-center justify-center border-2 border-dashed border-slate-800 m-2 rounded-lg"><span className="text-[7px] text-slate-700 font-black uppercase">대기 중</span></div>}
-                    </div>
-                  </td>
-                  <td className="py-5 px-6 align-top text-center">
-                    {row.audioData ? <div className="flex justify-center"><AudioPlayer base64={row.audioData} /></div> : <div className="flex flex-col items-center gap-1.5 opacity-30"><div className="w-2.5 h-2.5 border-2 border-slate-700 border-t-slate-500 animate-spin rounded-full"></div><span className="text-[6px] text-slate-600 font-black uppercase">VO</span></div>}
-                  </td>
-                </tr>
+                <SceneRow
+                  key={row.sceneNumber}
+                  row={row}
+                  index={index}
+                  aspectRatio={aspectRatio}
+                  isAnimating={animatingIndices?.has(index) || false}
+                  onRegenerateImage={onRegenerateImage}
+                  onGenerateAnimation={onGenerateAnimation}
+                />
               ))}
             </tbody>
           </table>

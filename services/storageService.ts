@@ -343,3 +343,233 @@ export const getStorageUsage = async (): Promise<{ used: number; quota: number }
   }
   return null;
 };
+
+// 씬 단위 저장을 위한 별도 스토어 이름
+const SCENE_DATA_STORE = 'scene_data';
+
+/**
+ * DB 스키마 업그레이드 - 씬 단위 저장소 추가
+ * IndexedDB 버전이 1에서 2로 업그레이드 시 호출됨
+ */
+const ensureSceneStore = async (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    // 버전 2로 업그레이드하여 씬 저장소 추가
+    const request = indexedDB.open(DB_NAME, 2);
+
+    request.onerror = () => {
+      console.error('[Storage] 씬 저장소 생성 실패:', request.error);
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      dbInstance = request.result;
+      resolve(request.result);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      console.log('[Storage] DB 스키마 업그레이드 (v2) - 씬 단위 저장소 추가');
+
+      // 기존 스토어가 없으면 생성
+      if (!db.objectStoreNames.contains(PROJECTS_STORE)) {
+        const projectStore = db.createObjectStore(PROJECTS_STORE, { keyPath: 'id' });
+        projectStore.createIndex('updatedAt', 'updatedAt', { unique: false });
+        projectStore.createIndex('status', 'status', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(PROJECT_DATA_STORE)) {
+        db.createObjectStore(PROJECT_DATA_STORE, { keyPath: 'projectId' });
+      }
+
+      // 씬 단위 저장소 생성 (복합 키: projectId + sceneIndex)
+      if (!db.objectStoreNames.contains(SCENE_DATA_STORE)) {
+        const sceneStore = db.createObjectStore(SCENE_DATA_STORE, { keyPath: ['projectId', 'sceneIndex'] });
+        sceneStore.createIndex('projectId', 'projectId', { unique: false });
+        console.log('[Storage] 씬 단위 저장소 생성 완료');
+      }
+    };
+  });
+};
+
+/**
+ * 개별 씬 데이터 저장 (점진적 저장)
+ * - 메모리 최적화: 씬 완료 시 즉시 저장하여 메모리 해제 가능
+ * - 장애 복구: 중간에 오류가 발생해도 이전 씬은 보존됨
+ *
+ * @param projectId 프로젝트 ID
+ * @param sceneIndex 씬 인덱스 (0부터 시작)
+ * @param sceneData 씬 데이터
+ */
+export const saveSceneData = async (
+  projectId: string,
+  sceneIndex: number,
+  sceneData: GeneratedAsset
+): Promise<void> => {
+  try {
+    const db = await ensureSceneStore();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SCENE_DATA_STORE, 'readwrite');
+      const store = transaction.objectStore(SCENE_DATA_STORE);
+
+      const record = {
+        projectId,
+        sceneIndex,
+        data: sceneData,
+        savedAt: Date.now()
+      };
+
+      const request = store.put(record);
+
+      request.onsuccess = () => {
+        console.log(`[Storage] 씬 ${sceneIndex + 1} 저장 완료 (프로젝트: ${projectId.slice(-6)})`);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error(`[Storage] 씬 ${sceneIndex + 1} 저장 실패:`, request.error);
+        reject(request.error);
+      };
+    });
+  } catch (e) {
+    console.error('[Storage] saveSceneData 오류:', e);
+    throw e;
+  }
+};
+
+/**
+ * 프로젝트의 모든 씬 데이터 로드 (점진적 저장소에서)
+ *
+ * @param projectId 프로젝트 ID
+ * @returns 씬 데이터 배열 (인덱스 순 정렬됨)
+ */
+export const loadSceneDataByProject = async (
+  projectId: string
+): Promise<GeneratedAsset[] | null> => {
+  try {
+    const db = await ensureSceneStore();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SCENE_DATA_STORE, 'readonly');
+      const store = transaction.objectStore(SCENE_DATA_STORE);
+      const index = store.index('projectId');
+      const request = index.getAll(projectId);
+
+      request.onsuccess = () => {
+        const records = request.result;
+        if (records && records.length > 0) {
+          // 인덱스 순으로 정렬하여 반환
+          const sorted = records
+            .sort((a: any, b: any) => a.sceneIndex - b.sceneIndex)
+            .map((r: any) => r.data);
+          console.log(`[Storage] 씬 데이터 로드 완료: ${sorted.length}개 (프로젝트: ${projectId.slice(-6)})`);
+          resolve(sorted);
+        } else {
+          resolve(null);
+        }
+      };
+
+      request.onerror = () => {
+        console.error('[Storage] 씬 데이터 로드 실패:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (e) {
+    console.error('[Storage] loadSceneDataByProject 오류:', e);
+    return null;
+  }
+};
+
+/**
+ * 프로젝트의 모든 씬 데이터 삭제
+ *
+ * @param projectId 프로젝트 ID
+ */
+export const deleteSceneDataByProject = async (projectId: string): Promise<void> => {
+  try {
+    const db = await ensureSceneStore();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SCENE_DATA_STORE, 'readwrite');
+      const store = transaction.objectStore(SCENE_DATA_STORE);
+      const index = store.index('projectId');
+      const request = index.getAllKeys(projectId);
+
+      request.onsuccess = () => {
+        const keys = request.result;
+        let deletedCount = 0;
+
+        if (keys.length === 0) {
+          resolve();
+          return;
+        }
+
+        keys.forEach(key => {
+          const deleteRequest = store.delete(key);
+          deleteRequest.onsuccess = () => {
+            deletedCount++;
+            if (deletedCount === keys.length) {
+              console.log(`[Storage] 씬 데이터 ${deletedCount}개 삭제 완료 (프로젝트: ${projectId.slice(-6)})`);
+              resolve();
+            }
+          };
+          deleteRequest.onerror = () => {
+            console.error('[Storage] 씬 삭제 실패:', deleteRequest.error);
+          };
+        });
+      };
+
+      request.onerror = () => {
+        console.error('[Storage] 씬 데이터 삭제 실패:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (e) {
+    console.error('[Storage] deleteSceneDataByProject 오류:', e);
+    throw e;
+  }
+};
+
+/**
+ * 여러 씬 데이터 일괄 저장 (배치)
+ * - 트랜잭션 1회로 여러 씬 저장하여 성능 최적화
+ *
+ * @param projectId 프로젝트 ID
+ * @param scenes 씬 데이터 배열
+ */
+export const saveSceneDataBatch = async (
+  projectId: string,
+  scenes: GeneratedAsset[]
+): Promise<void> => {
+  try {
+    const db = await ensureSceneStore();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(SCENE_DATA_STORE, 'readwrite');
+      const store = transaction.objectStore(SCENE_DATA_STORE);
+
+      let savedCount = 0;
+      const total = scenes.length;
+
+      transaction.oncomplete = () => {
+        console.log(`[Storage] 씬 데이터 일괄 저장 완료: ${savedCount}/${total}개`);
+        resolve();
+      };
+
+      transaction.onerror = () => {
+        console.error('[Storage] 씬 데이터 일괄 저장 실패:', transaction.error);
+        reject(transaction.error);
+      };
+
+      scenes.forEach((scene, index) => {
+        const record = {
+          projectId,
+          sceneIndex: index,
+          data: scene,
+          savedAt: Date.now()
+        };
+        const request = store.put(record);
+        request.onsuccess = () => { savedCount++; };
+      });
+    });
+  } catch (e) {
+    console.error('[Storage] saveSceneDataBatch 오류:', e);
+    throw e;
+  }
+};

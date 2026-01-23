@@ -20,6 +20,63 @@ export type VideoModelType = 'none' | 'pixverse' | 'ltx' | 'wan' | 'kling' | 've
 export type ZoomEffectType = 'none' | 'slow' | 'medium' | 'fast';
 export type CharacterType = 'none' | 'stickman';
 
+// 레퍼런스 참조 강도 타입 (하위 호환용)
+export type ReferenceStrength = 'low' | 'medium' | 'high';
+
+// 캐릭터 레퍼런스 강도별 프롬프트 (0-100% 퍼센트 기반)
+// 0-30%: 약하게 (loose), 31-70%: 보통 (moderate), 71-100%: 강하게 (strict)
+export const getCharacterRefStrengthPrompt = (strength: number): string => {
+  if (strength <= 30) {
+    // 약하게 (0-30%)
+    return `CHARACTER REFERENCE (${strength}% - LOOSE):
+- Use the reference as loose inspiration for character design
+- Capture only the general vibe and silhouette
+- Feel free to interpret and modify details creatively
+- Maintain the essence but allow artistic freedom`;
+  } else if (strength <= 70) {
+    // 보통 (31-70%)
+    return `CHARACTER REFERENCE (${strength}% - MODERATE):
+- Moderately reference the character design
+- Keep key features: face shape, body type, distinctive traits
+- Some creative interpretation allowed for minor details
+- Balance accuracy with scene context`;
+  } else {
+    // 강하게 (71-100%)
+    return `CHARACTER REFERENCE (${strength}% - STRICT):
+- Strictly replicate the exact character design
+- Match proportions, facial features, outfit precisely
+- Maintain consistent appearance across all images
+- Only pose and expression should adapt to the scene`;
+  }
+};
+
+// 화풍 레퍼런스 강도별 프롬프트 (0-100% 퍼센트 기반)
+// 0-30%: 약하게 (loose), 31-70%: 보통 (moderate), 71-100%: 강하게 (strict)
+export const getStyleRefStrengthPrompt = (strength: number): string => {
+  if (strength <= 30) {
+    // 약하게 (0-30%)
+    return `STYLE REFERENCE (${strength}% - LOOSE):
+- Draw inspiration from the general mood and atmosphere
+- Use similar color temperature (warm/cool)
+- Interpret the artistic style freely
+- Allow personal artistic expression`;
+  } else if (strength <= 70) {
+    // 보통 (31-70%)
+    return `STYLE REFERENCE (${strength}% - MODERATE):
+- Apply the main color palette from the reference
+- Match the general art style category (illustration/realistic/anime)
+- Keep similar lighting mood
+- Some variation in details is acceptable`;
+  } else {
+    // 강하게 (71-100%)
+    return `STYLE REFERENCE (${strength}% - STRICT):
+- Exactly replicate the color palette (dominant + accent colors)
+- Match precise art style, line quality, and texture
+- Copy lighting direction and atmosphere
+- Output must look like it belongs to the same art series`;
+  }
+};
+
 // 캐릭터 목록
 export const CHARACTER_LIST = [
   {
@@ -655,8 +712,10 @@ export const getFinalVisualPrompt = (
   scene: any,
   hasReferenceImage: boolean = false,
   characterType: CharacterType = 'none',
-  hasCharacterRef: boolean = false,
-  hasStyleRef: boolean = false
+  characterRefCount: number = 0,       // 캐릭터 레퍼런스 개수 (0~4)
+  styleRefCount: number = 0,           // 화풍 레퍼런스 개수 (0~2)
+  characterRefStrength: number = 100,  // 0-100% (기본값 100% = 강하게)
+  styleRefStrength: number = 100       // 0-100% (기본값 100% = 강하게)
 ) => {
   // scene.visualPrompt (=image_prompt_english)가 있으면 그것을 기본으로 사용
   const basePrompt = scene.visualPrompt || "";
@@ -674,25 +733,43 @@ export const getFinalVisualPrompt = (
   // 키워드 텍스트
   const textPrompt = keywords ? `TEXT IN IMAGE: "${keywords}"` : "";
 
-  // 캐릭터/화풍 레퍼런스가 분리되어 있을 때
+  // 캐릭터/화풍 레퍼런스가 분리되어 있을 때 (강도 적용) - 다중 이미지 지원
+  const hasCharacterRef = characterRefCount > 0;
+  const hasStyleRef = styleRefCount > 0;
+
   if (hasCharacterRef || hasStyleRef) {
-    let refInstructions = `[REFERENCE IMAGE INSTRUCTIONS]\n`;
+    let refInstructions = `[REFERENCE IMAGE INSTRUCTIONS - MULTI-IMAGE MODE]\n`;
 
     if (hasCharacterRef && hasStyleRef) {
+      // 캐릭터 + 화풍 둘 다 있을 때 (다중 이미지)
       refInstructions += `
-- CHARACTER REFERENCE (1st image): Extract character design, proportions, features, outfit
-- STYLE REFERENCE (2nd image): Extract art style, color palette, lighting, texture
-- COMBINE: Draw the character from 1st image in the style of 2nd image
+CHARACTER REFERENCES (${characterRefCount} images, ${characterRefStrength}%):
+- Images 1-${characterRefCount} are character references
+- Combine features from all character images for consistency
+${getCharacterRefStrengthPrompt(characterRefStrength)}
+
+STYLE REFERENCES (${styleRefCount} images, ${styleRefStrength}%):
+- Images ${characterRefCount + 1}-${characterRefCount + styleRefCount} are style references
+- Apply the combined art style from all style images
+${getStyleRefStrengthPrompt(styleRefStrength)}
+
+COMBINE: Draw the character(s) from first ${characterRefCount} images in the style of last ${styleRefCount} images.
 `;
     } else if (hasCharacterRef) {
+      // 캐릭터만 있을 때 (다중 이미지)
       refInstructions += `
-- CHARACTER REFERENCE: Extract and use the exact character design from the reference
-- Keep character proportions, features, and outfit consistent
+CHARACTER REFERENCES (${characterRefCount} images, ${characterRefStrength}%):
+- All ${characterRefCount} images are character references
+- Combine features from all character images
+${getCharacterRefStrengthPrompt(characterRefStrength)}
 `;
     } else if (hasStyleRef) {
+      // 화풍만 있을 때 (다중 이미지)
       refInstructions += `
-- STYLE REFERENCE: Extract and apply the exact art style, colors, lighting from the reference
-- Generate content based on the script, matching the reference style
+STYLE REFERENCES (${styleRefCount} images, ${styleRefStrength}%):
+- All ${styleRefCount} images are style references
+- Apply the combined art style
+${getStyleRefStrengthPrompt(styleRefStrength)}
 `;
     }
 

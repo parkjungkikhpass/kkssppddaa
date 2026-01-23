@@ -5,8 +5,9 @@ import { SYSTEM_INSTRUCTIONS, getTrendSearchPrompt, getScriptGenerationPrompt, g
 
 /**
  * Gemini API 클라이언트 초기화
+ * - .env.local 파일의 GEMINI_API_KEY를 사용합니다
  */
-const getAI = () => new GoogleGenAI({ apiKey: "AIzaSyBp3PV_kmy44a9_HPUjKqvrbHTfug9RUik" });
+const getAI = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,9 +59,78 @@ const sanitizePrompt = (prompt: string, attemptIndex: number = 0): string => {
 };
 
 /**
- * JSON 응답 텍스트 정리 - 불필요한 문자 제거
+ * 불완전한 JSON 자동 복구
+ * - 대용량 대본 처리 시 토큰 제한으로 JSON이 잘릴 수 있음
+ * - 열린 브래킷을 추적하여 자동으로 닫아줌
+ * @param partial 불완전한 JSON 문자열
+ * @param isArray 배열 형태인지 여부
+ * @returns 복구된 JSON 문자열
  */
-const cleanJsonResponse = (text: string): string => {
+const repairIncompleteJson = (partial: string, isArray: boolean): string => {
+  // 문자열 내부인지 추적 (이스케이프된 따옴표 고려)
+  let inString = false;
+  let escapeNext = false;
+
+  // 각 브래킷 타입별 열린 개수 추적
+  const stack: string[] = [];
+
+  for (let i = 0; i < partial.length; i++) {
+    const char = partial[i];
+
+    // 이스케이프 문자 처리
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+
+    // 문자열 시작/끝 감지
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    // 문자열 내부가 아닐 때만 브래킷 처리
+    if (!inString) {
+      if (char === '[' || char === '{') {
+        stack.push(char);
+      } else if (char === ']' || char === '}') {
+        stack.pop();
+      }
+    }
+  }
+
+  // 열린 문자열이 있으면 닫기
+  if (inString) {
+    partial += '"';
+  }
+
+  // 마지막 불완전한 속성 제거 (쉼표로 끝나는 경우)
+  partial = partial.replace(/,\s*$/, '');
+
+  // 불완전한 속성값 제거 (키만 있고 값이 없는 경우: "key": )
+  partial = partial.replace(/,?\s*"[^"]*"\s*:\s*$/, '');
+
+  // 열린 브래킷들 역순으로 닫기
+  while (stack.length > 0) {
+    const openBracket = stack.pop();
+    partial += openBracket === '[' ? ']' : '}';
+  }
+
+  return partial;
+};
+
+/**
+ * JSON 응답 텍스트 정리 - 불필요한 문자 제거 및 불완전한 JSON 복구
+ * @param text API 응답 텍스트
+ * @param attemptRepair 복구 시도 여부 (기본: true)
+ * @returns 정리된 JSON 문자열
+ */
+const cleanJsonResponse = (text: string, attemptRepair: boolean = true): string => {
   if (!text) return '[]';
 
   let cleaned = text.trim();
@@ -77,6 +147,12 @@ const cleanJsonResponse = (text: string): string => {
 
   cleaned = cleaned.trim();
 
+  // 문자열 내부 제어 문자 이스케이프 처리 (JSON 파싱 오류 방지)
+  // 탭, 개행 등을 이스케이프 시퀀스로 변환
+  cleaned = cleaned.replace(/(?<!\\)\t/g, '\\t');
+  // 문자열 내부의 실제 개행을 \n으로 변환 (JSON 표준)
+  cleaned = cleaned.replace(/(?<!\\)\r\n/g, '\\n').replace(/(?<!\\)\r/g, '\\n');
+
   // JSON 배열/객체 시작과 끝 찾기
   const firstBracket = cleaned.search(/[\[{]/);
 
@@ -85,28 +161,58 @@ const cleanJsonResponse = (text: string): string => {
     return '[]';
   }
 
-  // 배열인지 객체인지에 따라 올바른 닫는 브래킷 찾기
+  // 배열인지 객체인지 판단
   const isArray = cleaned[firstBracket] === '[';
-  const closingBracket = isArray ? ']' : '}';
 
   // 중첩 레벨을 추적하며 올바른 닫는 브래킷 찾기
+  // 문자열 내부의 브래킷은 무시해야 함
   let depth = 0;
   let lastValidIndex = -1;
+  let inString = false;
+  let escapeNext = false;
 
   for (let i = firstBracket; i < cleaned.length; i++) {
     const char = cleaned[i];
-    if (char === '[' || char === '{') depth++;
-    if (char === ']' || char === '}') {
-      depth--;
-      if (depth === 0) {
-        lastValidIndex = i;
-        break;
+
+    // 이스케이프 문자 처리
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+
+    // 문자열 시작/끝 감지
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    // 문자열 내부가 아닐 때만 브래킷 카운트
+    if (!inString) {
+      if (char === '[' || char === '{') depth++;
+      if (char === ']' || char === '}') {
+        depth--;
+        if (depth === 0) {
+          lastValidIndex = i;
+          break;
+        }
       }
     }
   }
 
   if (lastValidIndex !== -1) {
+    // 정상적으로 닫힌 JSON
     cleaned = cleaned.slice(firstBracket, lastValidIndex + 1);
+  } else if (attemptRepair) {
+    // 불완전한 JSON - 복구 시도
+    console.warn('[JSON Clean] 불완전한 JSON 감지, 복구 시도...');
+    const partialJson = cleaned.slice(firstBracket);
+    cleaned = repairIncompleteJson(partialJson, isArray);
+    console.log('[JSON Clean] 복구 완료, 길이:', cleaned.length);
   } else {
     // 폴백: 기존 방식
     const lastBracket = Math.max(cleaned.lastIndexOf(']'), cleaned.lastIndexOf('}'));
@@ -162,10 +268,10 @@ export const findTrendingTopics = async (category: string, usedTopics: string[])
 export const generateScript = async (topic: string, hasReferenceImage: boolean, sourceContext?: string | null): Promise<ScriptScene[]> => {
   return retryGeminiRequest("Script Generation", async () => {
     const ai = getAI();
-    const baseInstruction = topic === "Manual Script Input" ? SYSTEM_INSTRUCTIONS.MANUAL_VISUAL_MATCHER : 
-                            hasReferenceImage ? SYSTEM_INSTRUCTIONS.REFERENCE_MATCH : 
+    const baseInstruction = topic === "Manual Script Input" ? SYSTEM_INSTRUCTIONS.MANUAL_VISUAL_MATCHER :
+                            hasReferenceImage ? SYSTEM_INSTRUCTIONS.REFERENCE_MATCH :
                             SYSTEM_INSTRUCTIONS.CHIEF_ART_DIRECTOR;
-                            
+
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: getScriptGenerationPrompt(topic, sourceContext),
@@ -193,6 +299,129 @@ export const generateScript = async (topic: string, hasReferenceImage: boolean, 
       analysis: scene.analysis || {}
     }));
   });
+};
+
+/**
+ * 대용량 대본을 청크로 분할하여 스크립트 생성
+ * - 3000자 초과 대본을 문단 단위로 분할
+ * - 각 청크를 순차 처리하여 API rate limit 방지
+ * - 씬 번호를 자동으로 재정렬
+ *
+ * @param topic 주제
+ * @param sourceContext 전체 대본 텍스트 (10,000자 이상 가능)
+ * @param hasReferenceImage 레퍼런스 이미지 유무
+ * @returns 모든 청크의 씬을 합친 배열
+ */
+export const generateScriptChunked = async (
+  topic: string,
+  sourceContext: string,
+  hasReferenceImage: boolean
+): Promise<ScriptScene[]> => {
+  const CHUNK_SIZE = 3000; // 청크 최대 크기
+  const CHUNK_DELAY = 2000; // 청크 간 딜레이 (ms)
+
+  console.log(`[Script Chunked] 대용량 대본 감지: ${sourceContext.length}자, 청크 분할 처리 시작`);
+
+  // 문단 단위로 분할 (빈 줄 기준)
+  const paragraphs = sourceContext.split(/\n\s*\n/).filter(p => p.trim());
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const paragraph of paragraphs) {
+    // 현재 청크 + 새 문단이 CHUNK_SIZE를 초과하면 새 청크 시작
+    if (currentChunk.length + paragraph.length > CHUNK_SIZE && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = '';
+    }
+
+    // 단일 문단이 CHUNK_SIZE를 초과하는 경우 문장 단위로 재분할
+    if (paragraph.length > CHUNK_SIZE) {
+      // 현재 청크가 있으면 먼저 저장
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+      }
+
+      // 문장 단위로 분할 (마침표, 물음표, 느낌표 기준)
+      const sentences = paragraph.split(/(?<=[.?!。])\s+/);
+      let sentenceChunk = '';
+
+      for (const sentence of sentences) {
+        if (sentenceChunk.length + sentence.length > CHUNK_SIZE && sentenceChunk.length > 0) {
+          chunks.push(sentenceChunk.trim());
+          sentenceChunk = '';
+        }
+        sentenceChunk += (sentenceChunk ? ' ' : '') + sentence;
+      }
+
+      if (sentenceChunk.length > 0) {
+        currentChunk = sentenceChunk;
+      }
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+    }
+  }
+
+  // 마지막 청크 저장
+  if (currentChunk.trim().length > 0) {
+    chunks.push(currentChunk.trim());
+  }
+
+  console.log(`[Script Chunked] ${chunks.length}개 청크로 분할 완료`);
+  chunks.forEach((chunk, i) => {
+    console.log(`  청크 ${i + 1}: ${chunk.length}자`);
+  });
+
+  // 각 청크 순차 처리
+  const allScenes: ScriptScene[] = [];
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const isLastChunk = i === chunks.length - 1;
+
+    console.log(`[Script Chunked] 청크 ${i + 1}/${chunks.length} 처리 중... (${chunk.length}자)`);
+
+    try {
+      // 청크별 프롬프트에 맥락 정보 추가
+      const chunkContext = `[Part ${i + 1}/${chunks.length}] ${chunk}`;
+      const chunkScenes = await generateScript(topic, hasReferenceImage, chunkContext);
+
+      // 씬 번호 재정렬 (이전 씬 개수 + 현재 인덱스)
+      const reindexedScenes = chunkScenes.map((scene, idx) => ({
+        ...scene,
+        sceneNumber: allScenes.length + idx + 1
+      }));
+
+      allScenes.push(...reindexedScenes);
+      console.log(`[Script Chunked] 청크 ${i + 1} 완료: ${chunkScenes.length}개 씬 생성`);
+
+      // 마지막 청크가 아니면 딜레이 적용 (API rate limit 방지)
+      if (!isLastChunk) {
+        await wait(CHUNK_DELAY);
+      }
+    } catch (error: any) {
+      console.error(`[Script Chunked] 청크 ${i + 1} 처리 실패:`, error.message);
+
+      // 재시도 1회
+      await wait(CHUNK_DELAY * 2);
+      try {
+        console.log(`[Script Chunked] 청크 ${i + 1} 재시도 중...`);
+        const retryScenes = await generateScript(topic, hasReferenceImage, chunk);
+        const reindexedScenes = retryScenes.map((scene, idx) => ({
+          ...scene,
+          sceneNumber: allScenes.length + idx + 1
+        }));
+        allScenes.push(...reindexedScenes);
+        console.log(`[Script Chunked] 청크 ${i + 1} 재시도 성공`);
+      } catch (retryError: any) {
+        console.error(`[Script Chunked] 청크 ${i + 1} 재시도 실패:`, retryError.message);
+        // 해당 청크는 건너뛰고 계속 진행
+      }
+    }
+  }
+
+  console.log(`[Script Chunked] 전체 처리 완료: 총 ${allScenes.length}개 씬`);
+  return allScenes;
 };
 
 /**
@@ -273,23 +502,27 @@ export const generateImageForScene = async (
   style: StyleType = "default",
   customStylePrompt: string = "",
   characterType: CharacterType = "none",
-  characterRefImage: string | null = null,
-  styleRefImage: string | null = null
+  characterRefImages: string[] = [],   // 최대 4개 배열
+  styleRefImages: string[] = [],       // 최대 2개 배열
+  characterRefStrength: number = 100,  // 0-100% (기본값 100% = 강하게)
+  styleRefStrength: number = 100       // 0-100% (기본값 100% = 강하게)
 ): Promise<string | null> => {
-  // 새로운 분리된 레퍼런스 시스템
-  const hasCharacterRef = !!characterRefImage;
-  const hasStyleRef = !!styleRefImage;
+  // 새로운 분리된 레퍼런스 시스템 (다중 이미지 지원)
+  const hasCharacterRef = characterRefImages.length > 0;
+  const hasStyleRef = styleRefImages.length > 0;
 
   // 기존 레퍼런스 (하위 호환)
   const hasLegacyRef = referenceImages && referenceImages.length > 0 && !hasCharacterRef && !hasStyleRef;
 
-  // visualPrompt 생성 - 캐릭터 타입과 레퍼런스 정보 전달
+  // visualPrompt 생성 - 캐릭터 타입, 레퍼런스 개수, 강도 전달
   let visualPrompt = getFinalVisualPrompt(
     scene,
     hasLegacyRef,
     characterType,
-    hasCharacterRef,
-    hasStyleRef
+    characterRefImages.length,  // 캐릭터 레퍼런스 개수 (0~4)
+    styleRefImages.length,       // 화풍 레퍼런스 개수 (0~2)
+    characterRefStrength,
+    styleRefStrength
   );
   const stylePrompt = getStylePrompt(style);
 
@@ -322,36 +555,39 @@ IMPORTANT: Every single image MUST follow this exact style. No exceptions.
 `;
   }
 
-  // 분리된 레퍼런스 이미지 지시문
+  // 분리된 레퍼런스 이미지 지시문 (다중 이미지 지원)
   let referenceStyleDirective = "";
+  const charCount = characterRefImages.length;
+  const styleCount = styleRefImages.length;
 
   if (hasCharacterRef && hasStyleRef) {
-    referenceStyleDirective = `[DUAL REFERENCE MODE - CHARACTER + STYLE]
-FIRST IMAGE = CHARACTER REFERENCE:
-- Extract character design, proportions, facial features, outfit
-- Use this character in every scene
+    referenceStyleDirective = `[DUAL REFERENCE MODE - ${charCount} CHARACTER(S) + ${styleCount} STYLE(S)]
+IMAGES 1-${charCount} = CHARACTER REFERENCES:
+- Extract character design, proportions, facial features, outfit from all ${charCount} character images
+- Combine common features from all character references for consistency
+- Use this combined character design in every scene
 
-SECOND IMAGE = STYLE REFERENCE:
-- Extract art style, color palette, lighting, texture
-- Apply this visual style to everything
+IMAGES ${charCount + 1}-${charCount + styleCount} = STYLE REFERENCES:
+- Extract art style, color palette, lighting, texture from all ${styleCount} style images
+- Apply the combined visual style to everything
 
-COMBINE both references: Draw the character from image 1 in the style of image 2.
+COMBINE: Draw the character(s) from images 1-${charCount} in the style of images ${charCount + 1}-${charCount + styleCount}.
 
 `;
   } else if (hasCharacterRef) {
-    referenceStyleDirective = `[CHARACTER REFERENCE MODE]
-Analyze the character reference image and extract:
-- Character design and proportions
+    referenceStyleDirective = `[CHARACTER REFERENCE MODE - ${charCount} IMAGE(S)]
+Analyze all ${charCount} character reference image(s) and extract:
+- Character design and proportions (combine features from all references)
 - Facial features and expressions
 - Outfit and accessories
 - Overall character personality
 
-Draw this EXACT character in the scene. Keep character consistent across all images.
+Draw this character consistently in the scene. Combine features from all ${charCount} reference(s).
 
 `;
   } else if (hasStyleRef) {
-    referenceStyleDirective = `[STYLE REFERENCE MODE]
-Analyze the style reference image and extract:
+    referenceStyleDirective = `[STYLE REFERENCE MODE - ${styleCount} IMAGE(S)]
+Analyze all ${styleCount} style reference image(s) and extract:
 - Exact color palette (dominant colors, accent colors)
 - Art style (illustration, realistic, anime, etc.)
 - Line quality and stroke style
@@ -400,21 +636,23 @@ The output MUST look like it belongs to the same art series as the reference.
 
     try {
       const result = await retryGeminiRequest("Pro Image Generation", async () => {
-        const ai = new GoogleGenAI({ apiKey: "AIzaSyBp3PV_kmy44a9_HPUjKqvrbHTfug9RUik" });
+        const ai = getAI();  // 환경 변수에서 API 키 사용
         const parts: any[] = [];
 
-        // 분리된 레퍼런스 이미지 (캐릭터 먼저, 화풍 나중에)
-        if (characterRefImage) {
-          const imgData = characterRefImage.includes(',') ? characterRefImage.split(',')[1] : characterRefImage;
+        // 분리된 레퍼런스 이미지 (캐릭터 먼저, 화풍 나중에) - 다중 이미지 지원
+        // 캐릭터 레퍼런스 이미지들 (최대 4개)
+        characterRefImages.forEach(img => {
+          const imgData = img.includes(',') ? img.split(',')[1] : img;
           parts.push({ inlineData: { data: imgData, mimeType: 'image/jpeg' } });
-        }
-        if (styleRefImage) {
-          const imgData = styleRefImage.includes(',') ? styleRefImage.split(',')[1] : styleRefImage;
+        });
+        // 화풍 레퍼런스 이미지들 (최대 2개)
+        styleRefImages.forEach(img => {
+          const imgData = img.includes(',') ? img.split(',')[1] : img;
           parts.push({ inlineData: { data: imgData, mimeType: 'image/jpeg' } });
-        }
+        });
 
-        // 기존 레퍼런스 이미지 (하위 호환)
-        if (!characterRefImage && !styleRefImage && referenceImages && referenceImages.length > 0) {
+        // 기존 레퍼런스 이미지 (하위 호환) - 분리된 레퍼런스가 없을 때만
+        if (characterRefImages.length === 0 && styleRefImages.length === 0 && referenceImages && referenceImages.length > 0) {
           referenceImages.forEach(img => {
             const imgData = img.includes(',') ? img.split(',')[1] : img;
             parts.push({ inlineData: { data: imgData, mimeType: 'image/jpeg' } });
@@ -435,7 +673,7 @@ The output MUST look like it belongs to the same art series as the reference.
           if (part.inlineData) return part.inlineData.data;
         }
         return null;
-      }, 2, 3000); // 각 대체어당 2회 재시도
+      }, 2, 1500); // 각 대체어당 2회 재시도 (기존 3000ms → 1500ms로 단축)
 
       if (result) return result;
     } catch (error: any) {
@@ -454,7 +692,7 @@ The output MUST look like it belongs to the same art series as the reference.
 
       if (isSafetyError && sanitizeAttempt < MAX_SANITIZE_ATTEMPTS - 1) {
         console.log(`[Image Gen] 안전 필터 감지됨. 대체 키워드로 재시도...`);
-        await wait(1000);
+        await wait(300); // 기존 1000ms → 300ms로 단축
         continue; // 다음 대체어로 재시도
       }
 
