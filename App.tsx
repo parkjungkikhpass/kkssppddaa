@@ -324,7 +324,7 @@ const App: React.FC = () => {
       setCurrentProject(prev => prev ? { ...prev, title: targetTopic } : null);
 
       setAutopilotProgress({ step: '스크립트 작성', message: '스토리보드 생성 중...', percent: 15 });
-      const scriptScenes = await generateScript(targetTopic, false, null);
+      const scriptScenes = await generateScript(targetTopic, false, null, config.category);
       if (isAbortedRef.current) throw new Error('중단됨');
 
       const initialAssets: GeneratedAsset[] = scriptScenes.map(scene => ({
@@ -382,7 +382,7 @@ const App: React.FC = () => {
         updateAssetAt(i, { status: 'generating' });
 
         try {
-          const img = await generateImageForScene(assetsRef.current[i], [], '16:9', currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength);
+          const img = await generateImageForScene(assetsRef.current[i], [], '16:9', currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength, currentGenOptionsRef.current.category as any);
           if (img) {
             updateAssetAt(i, { imageData: img, status: 'completed' });
           } else {
@@ -659,11 +659,12 @@ const App: React.FC = () => {
 
       // 대용량 대본 처리: 3000자 초과 시 청크 분할
       let scriptScenes: ScriptScene[];
+      const categoryForScript = currentGenOptionsRef.current.category as any;
       if (sourceText && sourceText.length > LARGE_SCRIPT_CONFIG.CHUNK_THRESHOLD) {
         setProgressMessage(`대용량 대본 감지 (${sourceText.length}자), 청크 분할 처리 중...`);
-        scriptScenes = await generateScriptChunked(targetTopic, sourceText, refImgs.length > 0);
+        scriptScenes = await generateScriptChunked(targetTopic, sourceText, refImgs.length > 0, categoryForScript);
       } else {
-        scriptScenes = await generateScript(targetTopic, refImgs.length > 0, sourceText);
+        scriptScenes = await generateScript(targetTopic, refImgs.length > 0, sourceText, categoryForScript);
       }
       if (isAbortedRef.current) return;
 
@@ -745,7 +746,7 @@ const App: React.FC = () => {
                       }
 
                       // Scene 객체 전체를 넘겨서 prompts.ts가 분석 정보를 활용하도록 함
-                      const img = await generateImageForScene(assetsRef.current[i], refImgs, currentGenOptionsRef.current.aspectRatio, currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength);
+                      const img = await generateImageForScene(assetsRef.current[i], refImgs, currentGenOptionsRef.current.aspectRatio, currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength, currentGenOptionsRef.current.category as any);
                       if (isAbortedRef.current) return;
 
                       if (img) {
@@ -1064,8 +1065,8 @@ const App: React.FC = () => {
                     await wait(2000);
                   }
                   
-                  const img = await generateImageForScene(assetsRef.current[idx], currentReferenceImages, currentGenOptionsRef.current.aspectRatio, currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength);
-                  
+                  const img = await generateImageForScene(assetsRef.current[idx], currentReferenceImages, currentGenOptionsRef.current.aspectRatio, currentGenOptionsRef.current.style, currentGenOptionsRef.current.customStylePrompt, currentGenOptionsRef.current.characterType, currentGenOptionsRef.current.characterRefImages, currentGenOptionsRef.current.styleRefImages, currentGenOptionsRef.current.characterRefStrength, currentGenOptionsRef.current.styleRefStrength, currentGenOptionsRef.current.category as any);
+
                   if (img && !isAbortedRef.current) {
                     updateAssetAt(idx, { imageData: img, status: 'completed' });
                     setProgressMessage(`씬 ${idx + 1} 이미지 재생성 완료!`);

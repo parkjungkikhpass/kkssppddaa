@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ScriptScene } from "../types";
-import { SYSTEM_INSTRUCTIONS, getTrendSearchPrompt, getScriptGenerationPrompt, getFinalVisualPrompt, getStylePrompt, StyleType, CharacterType } from "./prompts";
+import { SYSTEM_INSTRUCTIONS, getTrendSearchPrompt, getScriptGenerationPrompt, getFinalVisualPrompt, getStylePrompt, StyleType, CharacterType, CategoryType, getCategorySystemPrompt } from "./prompts";
 
 /**
  * Gemini API 클라이언트 초기화
@@ -265,16 +265,21 @@ export const findTrendingTopics = async (category: string, usedTopics: string[])
   });
 };
 
-export const generateScript = async (topic: string, hasReferenceImage: boolean, sourceContext?: string | null): Promise<ScriptScene[]> => {
+export const generateScript = async (topic: string, hasReferenceImage: boolean, sourceContext?: string | null, category?: CategoryType): Promise<ScriptScene[]> => {
   return retryGeminiRequest("Script Generation", async () => {
     const ai = getAI();
     const baseInstruction = topic === "Manual Script Input" ? SYSTEM_INSTRUCTIONS.MANUAL_VISUAL_MATCHER :
                             hasReferenceImage ? SYSTEM_INSTRUCTIONS.REFERENCE_MATCH :
                             SYSTEM_INSTRUCTIONS.CHIEF_ART_DIRECTOR;
 
+    // 카테고리가 지정된 경우 로그 출력
+    if (category) {
+      console.log(`[Script Generation] 카테고리 적용: ${category}`);
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
-      contents: getScriptGenerationPrompt(topic, sourceContext),
+      contents: getScriptGenerationPrompt(topic, sourceContext, category),
       config: {
         thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
@@ -315,7 +320,8 @@ export const generateScript = async (topic: string, hasReferenceImage: boolean, 
 export const generateScriptChunked = async (
   topic: string,
   sourceContext: string,
-  hasReferenceImage: boolean
+  hasReferenceImage: boolean,
+  category?: CategoryType
 ): Promise<ScriptScene[]> => {
   const CHUNK_SIZE = 3000; // 청크 최대 크기
   const CHUNK_DELAY = 2000; // 청크 간 딜레이 (ms)
@@ -384,7 +390,7 @@ export const generateScriptChunked = async (
     try {
       // 청크별 프롬프트에 맥락 정보 추가
       const chunkContext = `[Part ${i + 1}/${chunks.length}] ${chunk}`;
-      const chunkScenes = await generateScript(topic, hasReferenceImage, chunkContext);
+      const chunkScenes = await generateScript(topic, hasReferenceImage, chunkContext, category);
 
       // 씬 번호 재정렬 (이전 씬 개수 + 현재 인덱스)
       const reindexedScenes = chunkScenes.map((scene, idx) => ({
@@ -406,7 +412,7 @@ export const generateScriptChunked = async (
       await wait(CHUNK_DELAY * 2);
       try {
         console.log(`[Script Chunked] 청크 ${i + 1} 재시도 중...`);
-        const retryScenes = await generateScript(topic, hasReferenceImage, chunk);
+        const retryScenes = await generateScript(topic, hasReferenceImage, chunk, category);
         const reindexedScenes = retryScenes.map((scene, idx) => ({
           ...scene,
           sceneNumber: allScenes.length + idx + 1
@@ -505,7 +511,8 @@ export const generateImageForScene = async (
   characterRefImages: string[] = [],   // 최대 4개 배열
   styleRefImages: string[] = [],       // 최대 2개 배열
   characterRefStrength: number = 100,  // 0-100% (기본값 100% = 강하게)
-  styleRefStrength: number = 100       // 0-100% (기본값 100% = 강하게)
+  styleRefStrength: number = 100,      // 0-100% (기본값 100% = 강하게)
+  category?: CategoryType              // 카테고리별 시각화 규칙 적용
 ): Promise<string | null> => {
   // 새로운 분리된 레퍼런스 시스템 (다중 이미지 지원)
   const hasCharacterRef = characterRefImages.length > 0;
@@ -513,6 +520,12 @@ export const generateImageForScene = async (
 
   // 기존 레퍼런스 (하위 호환)
   const hasLegacyRef = referenceImages && referenceImages.length > 0 && !hasCharacterRef && !hasStyleRef;
+
+  // 카테고리별 프롬프트 생성 (선택된 경우)
+  const categoryPrompt = category ? getCategorySystemPrompt(category) : '';
+  if (category) {
+    console.log(`[Image Gen] 카테고리 적용: ${category}`);
+  }
 
   // visualPrompt 생성 - 캐릭터 타입, 레퍼런스 개수, 강도 전달
   let visualPrompt = getFinalVisualPrompt(
@@ -619,7 +632,8 @@ The output MUST look like it belongs to the same art series as the reference.
   const useDefaultStyle = !customStylePrompt.trim() && !hasAnyRef;
   const finalStylePrompt = useDefaultStyle ? stylePrompt : "";
 
-  const basePrompt = `${masterStyleDirective}${referenceStyleDirective}${finalStylePrompt}\n\n${visualPrompt}`;
+  // 카테고리 프롬프트를 맨 앞에 추가하여 시각화 규칙 적용
+  const basePrompt = `${categoryPrompt}${masterStyleDirective}${referenceStyleDirective}${finalStylePrompt}\n\n${visualPrompt}`;
 
   const MAX_SANITIZE_ATTEMPTS = 3; // 대체어 시도 횟수
   let lastError: any;

@@ -14,7 +14,8 @@
 // 카테고리 및 스타일 타입 정의
 // ============================================================================
 
-export type CategoryType = 'economy' | 'tech' | 'health' | 'edu' | 'env' | 'society' | 'culture' | 'science';
+// 카테고리 타입 정의 (동화/우화 추가)
+export type CategoryType = 'economy' | 'tech' | 'health' | 'edu' | 'env' | 'society' | 'culture' | 'science' | 'story';
 export type StyleType = 'default' | 'minimal' | 'cartoon3d' | 'pixel' | 'vintage' | 'sketch';
 export type VideoModelType = 'none' | 'pixverse' | 'ltx' | 'wan' | 'kling' | 'veo2';
 export type ZoomEffectType = 'none' | 'slow' | 'medium' | 'fast';
@@ -117,8 +118,205 @@ export const CATEGORY_LIST = [
   { id: 'env', name: '환경/에너지', emoji: '🌱', description: '기후, 친환경, 지속가능성' },
   { id: 'society', name: '사회/정치', emoji: '📢', description: '트렌드, 이슈, 정책, 사회현상' },
   { id: 'culture', name: '문화/예술', emoji: '✨', description: '영화, 음악, 미술, 트렌드' },
-  { id: 'science', name: '과학/우주', emoji: '🚀', description: '물리, 생물, 천문, 연구' }
+  { id: 'science', name: '과학/우주', emoji: '🚀', description: '물리, 생물, 천문, 연구' },
+  { id: 'story', name: '동화/우화', emoji: '📖', description: '교훈이 있는 이야기, 전래동화 스타일' }
 ];
+
+// ============================================================================
+// 카테고리별 맞춤 프롬프트 시스템 (V10.1)
+// - 각 카테고리에 맞는 도메인 힌트, 색상 팔레트, 분위기 정의
+// - 스크립트 및 이미지 생성 시 일관된 스타일 적용
+// ============================================================================
+
+export const CATEGORY_PROMPTS: Record<CategoryType, {
+  domainHints: string;      // 주제별 시각화 힌트
+  colorPalette: string;     // 도메인별 색상
+  atmosphere: string;       // 분위기/톤
+  examples: string;         // 예시 문장
+}> = {
+  // 📈 경제/비즈니스
+  economy: {
+    domainHints: `
+- 주식 → 그래프, 차트, 캔들스틱
+- 금융 → 돈, 금괴, 은행, 지폐
+- 부동산 → 건물, 아파트, 집
+- 물가 → 장바구니, 가격표
+- 투자 → 성장 그래프, 금화`,
+    colorPalette: `
+- 상승: 빨강/주황 (한국식)
+- 하락: 파랑/남색
+- 금/돈: #FFD700 황금
+- 부동산: #8B4513 갈색`,
+    atmosphere: "전문적, 신뢰감, 깔끔한",
+    examples: "GDP 상승, 금리 인하, 주가 급등"
+  },
+
+  // ⚡ 기술/IT
+  tech: {
+    domainHints: `
+- AI → 로봇, 신경망, 뇌 회로
+- 프로그래밍 → 코드, 모니터, 키보드
+- 반도체 → 칩, 회로, 웨이퍼
+- 가젯 → 스마트폰, 웨어러블
+- 클라우드 → 서버, 데이터센터`,
+    colorPalette: `
+- 사이버: 네온 블루 #00D4FF
+- AI: 퍼플 #9B59B6
+- 혁신: 밝은 그린 #2ECC71
+- 디지털: 다크 블루 #2C3E50`,
+    atmosphere: "미래적, 혁신적, 쿨톤",
+    examples: "AI 발전, 신형 칩 출시, 클라우드 성장"
+  },
+
+  // 💪 건강/라이프
+  health: {
+    domainHints: `
+- 운동 → 달리기, 헬스, 요가
+- 식단 → 채소, 과일, 건강식
+- 정신건강 → 명상, 휴식, 자연
+- 의료 → 병원, 의사, 약
+- 웰빙 → 스파, 힐링, 자연`,
+    colorPalette: `
+- 건강: 그린 #27AE60
+- 에너지: 오렌지 #F39C12
+- 평화: 하늘색 #85C1E9
+- 자연: 연두색 #82E0AA`,
+    atmosphere: "활기찬, 건강한, 따뜻한",
+    examples: "면역력 강화, 운동 효과, 건강한 식단"
+  },
+
+  // 💡 교육/자기계발
+  edu: {
+    domainHints: `
+- 학습 → 책, 노트, 연필, 칠판
+- 성장 → 계단, 사다리, 성장 그래프
+- 아이디어 → 전구, 뇌, 번개
+- 독서 → 책더미, 도서관
+- 스킬 → 도구, 자격증, 메달`,
+    colorPalette: `
+- 지식: 노랑 #F1C40F
+- 성장: 그린 #2ECC71
+- 창의: 보라 #9B59B6
+- 집중: 파랑 #3498DB`,
+    atmosphere: "영감을 주는, 밝은, 희망찬",
+    examples: "공부법, 습관 형성, 자기계발 팁"
+  },
+
+  // 🌱 환경/에너지
+  env: {
+    domainHints: `
+- 친환경 → 나무, 숲, 지구
+- 에너지 → 태양광, 풍력, 배터리
+- 기후 → 지구, 빙하, 태풍
+- 재활용 → 재활용 마크, 분리수거
+- 오염 → 공장, 매연, 쓰레기`,
+    colorPalette: `
+- 자연: 그린 #27AE60
+- 깨끗한 에너지: 하늘색 #5DADE2
+- 태양: 노랑 #F4D03F
+- 경고(오염): 회색 #7F8C8D`,
+    atmosphere: "자연친화적, 희망적, 경각심",
+    examples: "탄소중립, 재생에너지, 기후위기"
+  },
+
+  // 📢 사회/정치
+  society: {
+    domainHints: `
+- 정치 → 국회, 투표, 연설
+- 지정학 → 지도, 국기, 지구본
+- 사회이슈 → 시위, 군중, 뉴스
+- 정책 → 문서, 도장, 법
+- 국제 → 세계지도, 악수, 회담`,
+    colorPalette: `
+- 공식적: 네이비 #2C3E50
+- 민주주의: 파랑 #3498DB
+- 경고: 빨강 #E74C3C
+- 중립: 회색 #95A5A6`,
+    atmosphere: "진지한, 공식적, 객관적",
+    examples: "선거, 정책 발표, 국제 분쟁"
+  },
+
+  // ✨ 문화/예술
+  culture: {
+    domainHints: `
+- 영화 → 카메라, 필름, 극장
+- 음악 → 악기, 음표, 콘서트
+- 미술 → 그림, 붓, 갤러리
+- 트렌드 → SNS, 해시태그, 바이럴
+- 패션 → 옷, 런웨이, 스타일`,
+    colorPalette: `
+- 창의: 보라 #8E44AD
+- 열정: 빨강 #E74C3C
+- 트렌디: 핑크 #FF6B9D
+- 예술적: 골드 #F39C12`,
+    atmosphere: "창의적, 감성적, 트렌디한",
+    examples: "신작 영화, 음악 트렌드, 미술 전시"
+  },
+
+  // 🚀 과학/우주
+  science: {
+    domainHints: `
+- 우주 → 로켓, 행성, 별, 우주선
+- 물리 → 원자, 분자, 에너지
+- 생물 → DNA, 세포, 현미경
+- 연구 → 실험실, 과학자, 비커
+- 발견 → 망원경, 탐사선, 데이터`,
+    colorPalette: `
+- 우주: 다크 퍼플 #1A1A2E
+- 과학: 시안 #00CEC9
+- 발견: 밝은 노랑 #FDCB6E
+- 미스터리: 딥 블루 #0984E3`,
+    atmosphere: "신비로운, 경이로운, 탐험적",
+    examples: "우주 탐사, 신약 개발, 과학적 발견"
+  },
+
+  // 📖 동화/우화 (신규!)
+  story: {
+    domainHints: `
+- 캐릭터 → 동물, 요정, 왕자/공주
+- 배경 → 숲, 성, 마을, 마법의 나라
+- 소품 → 마법봉, 보물, 편지
+- 감정 → 웃음, 눈물, 놀람
+- 교훈 → 빛, 하트, 별`,
+    colorPalette: `
+- 마법: 보라/핑크 그라데이션
+- 자연: 따뜻한 그린
+- 희망: 밝은 노랑
+- 판타지: 파스텔톤`,
+    atmosphere: "따뜻한, 동화적인, 교훈적인",
+    examples: "토끼와 거북이, 양치기 소년, 개미와 베짱이"
+  }
+};
+
+/**
+ * 카테고리별 시스템 프롬프트 생성
+ * - 선택된 카테고리에 맞는 시각화 힌트, 색상, 분위기 반환
+ * @param category 카테고리 타입
+ * @returns 카테고리별 프롬프트 문자열
+ */
+export const getCategorySystemPrompt = (category: CategoryType): string => {
+  const catPrompt = CATEGORY_PROMPTS[category];
+  if (!catPrompt) return '';
+
+  const categoryInfo = CATEGORY_LIST.find(c => c.id === category);
+  const categoryName = categoryInfo ? `${categoryInfo.emoji} ${categoryInfo.name}` : category;
+
+  return `
+### 카테고리별 시각화 규칙 (${categoryName})
+
+**도메인 힌트 - 이 카테고리에서 자주 등장하는 시각 요소:**
+${catPrompt.domainHints}
+
+**색상 팔레트 - 이 카테고리에 어울리는 색상:**
+${catPrompt.colorPalette}
+
+**분위기:** ${catPrompt.atmosphere}
+
+**참고 예시:** ${catPrompt.examples}
+
+[중요] 위 규칙을 참고하여 이 카테고리에 맞는 일관된 시각 스타일을 유지하세요.
+`;
+};
 
 export const STYLE_LIST = [
   {
@@ -862,12 +1060,16 @@ Return 4 items in JSON (rank, topic, reason).
 // 스크립트 생성 프롬프트 (V10.0 Concept-Based)
 // ============================================================================
 
-export const getScriptGenerationPrompt = (topic: string, sourceContext?: string | null) => {
+export const getScriptGenerationPrompt = (topic: string, sourceContext?: string | null, category?: CategoryType) => {
   const isManual = !!sourceContext;
   const fullContent = sourceContext || topic;
 
+  // 카테고리별 프롬프트 생성 (선택된 경우)
+  const categoryPrompt = category ? getCategorySystemPrompt(category) : '';
+
   return `
 # Task: Generate Storyboard for "${topic}"
+${categoryPrompt}
 
 ## 🚨 [최우선] 씬 분할 규칙 - 반드시 지켜라!
 
